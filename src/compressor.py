@@ -21,16 +21,18 @@ def compress_image(src: str, dst: str, quality: int = None, target_kb: float = N
 
     img = Image.open(src)
 
+    # Convert RGBA/P to RGB for all output formats (JPEG cannot handle alpha,
+    # and keeping RGBA in PNG paths causes unnecessary complexity).
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+
     # Determine output format based on source extension
     if ext == ".png":
         fmt = "PNG"
         save_ext = ".png"
-        # PNG does not need RGBA->RGB conversion
     else:
         fmt = "JPEG"
         save_ext = ".jpg"
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
 
     # Adjust dst extension to match format
     dst_path = Path(dst).with_suffix(save_ext)
@@ -93,7 +95,7 @@ def compress_image(src: str, dst: str, quality: int = None, target_kb: float = N
         img.save(str(dst_path), fmt, optimize=True)
         q = quality
     else:
-        q = max(1, min(95, quality))
+        q = max(0, min(95, quality))
         img.save(str(dst_path), fmt, quality=q, optimize=True)
 
     return {

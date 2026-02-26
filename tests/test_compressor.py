@@ -60,3 +60,38 @@ def test_compress_png(tmp_path):
     result = compress_image(str(src), str(out), quality=60)
     assert out.exists()
     assert result["success"] is True
+
+
+def test_compress_rgba_image(tmp_path):
+    """RGBA images should be handled without error."""
+    src = tmp_path / "test.png"
+    img = Image.new("RGBA", (200, 200), color=(100, 150, 200, 128))
+    img.save(src, "PNG")
+    out = tmp_path / "out.png"
+    result = compress_image(str(src), str(out), quality=80)
+    assert out.exists()
+    assert result["success"] is True
+
+
+def test_compress_png_target_size(tmp_path):
+    """PNG files should work in target_kb mode."""
+    src = tmp_path / "test.png"
+    make_test_png(src, size=(1000, 800))
+    out = tmp_path / "out.png"
+    result = compress_image(str(src), str(out), target_kb=500)
+    assert out.exists()
+    assert "success" in result
+    assert "already_small" in result
+    assert "original_kb" in result
+    assert "final_kb" in result
+    assert "output_path" in result
+
+
+def test_compress_image_returns_all_keys(tmp_path):
+    """Return dict must contain all required keys."""
+    src = tmp_path / "test.jpg"
+    make_test_jpeg(src)
+    out = tmp_path / "out.jpg"
+    result = compress_image(str(src), str(out), quality=75)
+    for key in ["success", "already_small", "original_kb", "final_kb", "quality_used", "output_path"]:
+        assert key in result, f"Missing key: {key}"
