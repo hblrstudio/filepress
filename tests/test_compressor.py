@@ -95,3 +95,26 @@ def test_compress_image_returns_all_keys(tmp_path):
     result = compress_image(str(src), str(out), quality=75)
     for key in ["success", "already_small", "original_kb", "final_kb", "quality_used", "output_path"]:
         assert key in result, f"Missing key: {key}"
+
+
+def test_compress_image_missing_file(tmp_path):
+    out = tmp_path / "out.jpg"
+    with pytest.raises((FileNotFoundError, OSError)):
+        compress_image("/nonexistent/file.jpg", str(out), quality=75)
+
+
+def test_compress_image_unsupported_format(tmp_path):
+    src = tmp_path / "test.svg"
+    src.write_text("<svg></svg>")
+    out = tmp_path / "out.jpg"
+    with pytest.raises(ValueError):
+        compress_image(str(src), str(out), quality=75)
+
+
+def test_compress_image_default_quality(tmp_path):
+    """Calling with no quality or target_kb should not crash."""
+    src = tmp_path / "test.jpg"
+    make_test_jpeg(src)
+    out = tmp_path / "out.jpg"
+    result = compress_image(str(src), str(out))
+    assert result["success"] is True
