@@ -118,3 +118,69 @@ def test_compress_image_default_quality(tmp_path):
     out = tmp_path / "out.jpg"
     result = compress_image(str(src), str(out))
     assert result["success"] is True
+
+
+def test_compress_pdf_quality_mode(tmp_path):
+    """PDF compression in quality mode should succeed."""
+    import pikepdf
+    src = tmp_path / "test.pdf"
+    pdf = pikepdf.new()
+    pdf.add_blank_page(page_size=(612, 792))
+    pdf.save(str(src))
+    out = tmp_path / "out.pdf"
+    from src.compressor import compress_pdf
+    result = compress_pdf(str(src), str(out), quality=50)
+    assert out.exists()
+    assert result["success"] is True
+
+
+def test_compress_pdf_strips_metadata(tmp_path):
+    """PDF compression should strip metadata."""
+    import pikepdf
+    src = tmp_path / "test.pdf"
+    pdf = pikepdf.new()
+    with pdf.open_metadata() as meta:
+        meta["dc:title"] = "Test Document"
+    pdf.add_blank_page(page_size=(612, 792))
+    pdf.save(str(src))
+    out = tmp_path / "out.pdf"
+    from src.compressor import compress_pdf
+    compress_pdf(str(src), str(out), quality=80)
+    result_pdf = pikepdf.open(str(out))
+    with result_pdf.open_metadata() as meta:
+        assert "dc:title" not in meta
+
+
+def test_compress_pdf_returns_all_keys(tmp_path):
+    """compress_pdf should return all required dict keys."""
+    import pikepdf
+    src = tmp_path / "test.pdf"
+    pdf = pikepdf.new()
+    pdf.add_blank_page(page_size=(612, 792))
+    pdf.save(str(src))
+    out = tmp_path / "out.pdf"
+    from src.compressor import compress_pdf
+    result = compress_pdf(str(src), str(out), quality=75)
+    for key in ["success", "already_small", "original_kb", "final_kb", "output_path"]:
+        assert key in result, f"Missing key: {key}"
+
+
+def test_compress_pdf_missing_file(tmp_path):
+    """Missing PDF file should raise FileNotFoundError or OSError."""
+    out = tmp_path / "out.pdf"
+    from src.compressor import compress_pdf
+    with pytest.raises((FileNotFoundError, OSError)):
+        compress_pdf("/nonexistent/file.pdf", str(out), quality=75)
+
+
+def test_compress_pdf_already_small(tmp_path):
+    """If PDF is already smaller than target, already_small should be True."""
+    import pikepdf
+    src = tmp_path / "test.pdf"
+    pdf = pikepdf.new()
+    pdf.add_blank_page(page_size=(612, 792))
+    pdf.save(str(src))
+    out = tmp_path / "out.pdf"
+    from src.compressor import compress_pdf
+    result = compress_pdf(str(src), str(out), target_kb=10000)
+    assert result["already_small"] is True

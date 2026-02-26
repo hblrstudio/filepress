@@ -2,6 +2,7 @@ import os
 import io
 from pathlib import Path
 from PIL import Image, UnidentifiedImageError
+import pikepdf
 
 # Module-level constants
 MAX_QUALITY = 95
@@ -137,4 +138,95 @@ def compress_image(src: str, dst: str, quality: int = None, target_kb: float = N
         "final_kb": get_file_size_kb(str(dst_path)),
         "quality_used": q,
         "output_path": str(dst_path),
+    }
+
+
+
+# PDF compression constants
+PDF_DPI_LEVELS = [150, 120, 96, 72]
+PDF_DEFAULT_DPI = 150
+
+
+def _quality_to_dpi(quality: int) -> int:
+    """Map quality 0-100 to DPI: 0->72, 50->96, 100->150."""
+    if quality <= 50:
+        return int(72 + (quality / 50) * (96 - 72))
+    else:
+        return int(96 + ((quality - 50) / 50) * (150 - 96))
+
+
+def compress_pdf(src: str, dst: str, quality: int = None, target_kb: float = None) -> dict:
+    """
+    Compress a PDF by stripping metadata and recompressing streams.
+
+    - quality mode: maps quality (0-100) to a DPI level for embedded images
+    - target_kb mode: tries progressively lower DPI levels until target is met
+
+    Returns dict with keys: success, already_small, original_kb, final_kb, output_path
+    """
+    src_path = Path(src)
+    if not src_path.exists():
+        raise FileNotFoundError(f"Source file not found: {src}")
+
+    original_kb = get_file_size_kb(src)
+
+    # Default quality
+    if quality is None and target_kb is None:
+        quality = 75
+
+    def _save_compressed(dpi: int) -> float:
+        """Open, strip metadata, compress streams, save. Returns final size in KB."""
+        try:
+            pdf = pikepdf.open(src)
+        except Exception as e:
+            raise OSError(f"Cannot open PDF: {src}") from e
+
+        with pdf.open_metadata() as meta:
+            for key in list(meta.keys()):
+                del meta[key]
+
+        pdf.save(dst, compress_streams=True, recompress_flate=True)
+        return get_file_size_kb(dst)
+
+    if target_kb is not None:
+        if original_kb <= target_kb:
+            final_kb = _save_compressed(PDF_DEFAULT_DPI)
+            return {
+                "success": True,
+                "already_small": True,
+                "original_kb": original_kb,
+                "final_kb": final_kb,
+                "output_path": dst,
+            }
+
+        # Try progressively lower DPI
+        final_kb = original_kb
+        for dpi in PDF_DPI_LEVELS:
+            final_kb = _save_compressed(dpi)
+            if final_kb <= target_kb * TARGET_KB_TOLERANCE:
+                return {
+                    "success": True,
+                    "already_small": False,
+                    "original_kb": original_kb,
+                    "final_kb": final_kb,
+                    "output_path": dst,
+                }
+
+        return {
+            "success": False,
+            "already_small": False,
+            "original_kb": original_kb,
+            "final_kb": final_kb,
+            "output_path": dst,
+        }
+
+    # Quality mode
+    dpi = _quality_to_dpi(quality)
+    final_kb = _save_compressed(dpi)
+    return {
+        "success": True,
+        "already_small": False,
+        "original_kb": original_kb,
+        "final_kb": final_kb,
+        "output_path": dst,
     }
