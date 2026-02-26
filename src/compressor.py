@@ -5,6 +5,8 @@ from PIL import Image, UnidentifiedImageError
 import pikepdf
 
 # Module-level constants
+
+# Image compression constants
 MAX_QUALITY = 95
 MIN_QUALITY = 0
 BINARY_SEARCH_ITERATIONS = 12
@@ -141,40 +143,35 @@ def compress_image(src: str, dst: str, quality: int = None, target_kb: float = N
     }
 
 
-
-# PDF compression constants
-PDF_DPI_LEVELS = [150, 120, 96, 72]
-PDF_DEFAULT_DPI = 150
-
-
-def _quality_to_dpi(quality: int) -> int:
-    """Map quality 0-100 to DPI: 0->72, 50->96, 100->150."""
-    if quality <= 50:
-        return int(72 + (quality / 50) * (96 - 72))
-    else:
-        return int(96 + ((quality - 50) / 50) * (150 - 96))
-
-
 def compress_pdf(src: str, dst: str, quality: int = None, target_kb: float = None) -> dict:
     """
     Compress a PDF by stripping metadata and recompressing streams.
+    In v1, compression is metadata stripping only — DPI-based image downsampling
+    is not yet implemented.
 
-    - quality mode: maps quality (0-100) to a DPI level for embedded images
-    - target_kb mode: tries progressively lower DPI levels until target is met
+    - quality mode: strips metadata and recompresses streams
+    - target_kb mode: strips metadata and recompresses streams; reports whether
+      target was met
 
-    Returns dict with keys: success, already_small, original_kb, final_kb, output_path
+    Returns dict with keys: success, already_small, original_kb, final_kb, output_path, quality_used
     """
     src_path = Path(src)
     if not src_path.exists():
         raise FileNotFoundError(f"Source file not found: {src}")
 
-    original_kb = get_file_size_kb(src)
+    if src_path.suffix.lower() != ".pdf":
+        raise ValueError(f"Expected a .pdf file, got '{src_path.suffix}'")
 
     # Default quality
     if quality is None and target_kb is None:
         quality = 75
 
-    def _save_compressed(dpi: int) -> float:
+    if quality is not None:
+        quality = max(0, min(100, quality))
+
+    original_kb = get_file_size_kb(src)
+
+    def _save_compressed() -> float:
         """Open, strip metadata, compress streams, save. Returns final size in KB."""
         try:
             pdf = pikepdf.open(src)
@@ -190,43 +187,33 @@ def compress_pdf(src: str, dst: str, quality: int = None, target_kb: float = Non
 
     if target_kb is not None:
         if original_kb <= target_kb:
-            final_kb = _save_compressed(PDF_DEFAULT_DPI)
+            final_kb = _save_compressed()
             return {
                 "success": True,
                 "already_small": True,
                 "original_kb": original_kb,
                 "final_kb": final_kb,
                 "output_path": dst,
+                "quality_used": None,
             }
 
-        # Try progressively lower DPI
-        final_kb = original_kb
-        for dpi in PDF_DPI_LEVELS:
-            final_kb = _save_compressed(dpi)
-            if final_kb <= target_kb * TARGET_KB_TOLERANCE:
-                return {
-                    "success": True,
-                    "already_small": False,
-                    "original_kb": original_kb,
-                    "final_kb": final_kb,
-                    "output_path": dst,
-                }
-
+        final_kb = _save_compressed()
         return {
-            "success": False,
+            "success": final_kb <= target_kb * TARGET_KB_TOLERANCE,
             "already_small": False,
             "original_kb": original_kb,
             "final_kb": final_kb,
             "output_path": dst,
+            "quality_used": None,
         }
 
     # Quality mode
-    dpi = _quality_to_dpi(quality)
-    final_kb = _save_compressed(dpi)
+    final_kb = _save_compressed()
     return {
         "success": True,
         "already_small": False,
         "original_kb": original_kb,
         "final_kb": final_kb,
         "output_path": dst,
+        "quality_used": None,
     }
