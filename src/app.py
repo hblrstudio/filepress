@@ -31,8 +31,9 @@ class FileCompressorApp:
         self.drop_frame = ctk.CTkFrame(self.root, height=120, border_width=2, border_color="gray40", corner_radius=12)
         self.drop_frame.pack(fill="x", padx=20, pady=16)
         self.drop_frame.pack_propagate(False)
-        ctk.CTkLabel(self.drop_frame, text="Drop files here  or  Click to Browse",
-                      font=ctk.CTkFont(size=14), text_color="gray60").place(relx=0.5, rely=0.5, anchor="center")
+        self.drop_label = ctk.CTkLabel(self.drop_frame, text="Drop files here  or  Click to Browse",
+                                        font=ctk.CTkFont(size=14), text_color="gray60")
+        self.drop_label.place(relx=0.5, rely=0.5, anchor="center")
         self.drop_frame.bind("<Button-1>", self._on_browse)
 
     def _build_mode_selector(self):
@@ -42,8 +43,12 @@ class FileCompressorApp:
         ctk.CTkRadioButton(frame, text="Target Size", variable=self.mode_var, value="target", command=self._on_mode_change).pack(side="left")
         ctk.CTkRadioButton(frame, text="Quality Slider", variable=self.mode_var, value="quality", command=self._on_mode_change).pack(side="left", padx=20)
 
+        # Create stable container for target/quality controls
+        self.controls_container = ctk.CTkFrame(self.root, fg_color="transparent")
+        self.controls_container.pack(fill="x", padx=0, pady=0)
+
     def _build_target_controls(self):
-        self.target_frame = ctk.CTkFrame(self.root, fg_color="transparent")
+        self.target_frame = ctk.CTkFrame(self.controls_container, fg_color="transparent")
         self.target_frame.pack(fill="x", padx=20, pady=8)
 
         # Target size input
@@ -72,7 +77,7 @@ class FileCompressorApp:
                           command=lambda s=size_kb: self._apply_preset(s)).pack(side="left", padx=3)
 
         # Quality slider (hidden by default)
-        self.quality_frame = ctk.CTkFrame(self.root, fg_color="transparent")
+        self.quality_frame = ctk.CTkFrame(self.controls_container, fg_color="transparent")
         self.quality_var = ctk.IntVar(value=75)
         ctk.CTkLabel(self.quality_frame, text="Quality:").pack(side="left")
         self.quality_slider = ctk.CTkSlider(self.quality_frame, from_=1, to=95,
