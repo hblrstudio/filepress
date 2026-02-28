@@ -207,6 +207,8 @@ class FileCompressorApp:
         self.files.remove(path)
         self.file_rows = [r for r in self.file_rows if r["path"] != path]
         frame.destroy()
+        if not self.files:
+            self.drop_label.configure(text="Drop files here  or  Click to Browse")
 
     def _on_drop(self, event):
         paths = self.root.tk.splitlist(event.data)
@@ -230,7 +232,7 @@ class FileCompressorApp:
         out_dir.mkdir(parents=True, exist_ok=True)
         return str(out_dir / f"{p.stem}_compressed{p.suffix}")
 
-    def _get_compression_params(self) -> dict:
+    def _get_compression_params(self) -> "dict | None":
         if self.mode_var.get() == "quality":
             return {"quality": self.quality_var.get()}
         raw = self.target_entry.get().strip()
@@ -240,7 +242,7 @@ class FileCompressorApp:
         try:
             val = float(raw)
         except ValueError:
-            self._show_error("Please enter a target size.")
+            self._show_error("Target size must be a number.")
             return None
         unit = self.unit_var.get()
         target_kb = val * 1024 if unit == "MB" else val
