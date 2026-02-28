@@ -9,6 +9,7 @@ class FileCompressorApp:
         try:
             from tkinterdnd2 import TkinterDnD
             self.root = TkinterDnD.Tk()
+            # Re-apply CTk settings because TkinterDnD.Tk() bypasses ctk.CTk() init
             ctk.set_appearance_mode("System")
             ctk.set_default_color_theme("blue")
             self.root.configure(fg_color=ctk.ThemeManager.theme["CTk"]["fg_color"])
@@ -43,6 +44,7 @@ class FileCompressorApp:
                                         font=ctk.CTkFont(size=14), text_color="gray60")
         self.drop_label.place(relx=0.5, rely=0.5, anchor="center")
         self.drop_frame.bind("<Button-1>", self._on_browse)
+        self.drop_label.bind("<Button-1>", self._on_browse)
 
         try:
             from tkinterdnd2 import DND_FILES
@@ -131,7 +133,7 @@ class FileCompressorApp:
                                            command=self._on_compress)
         self.compress_btn.pack(padx=20, pady=(0, 16), fill="x")
 
-    # ── Event handlers (stubs — wired in Task 5) ──────────────────────────
+    # ── Event handlers ──────────────────────────────────────────────────────
 
     def _on_mode_change(self):
         if self.mode_var.get() == "target":
@@ -181,7 +183,8 @@ class FileCompressorApp:
         size_kb = get_file_size_kb(path)
         size_str = f"{size_kb/1024:.1f} MB" if size_kb >= 1024 else f"{size_kb:.0f} KB"
 
-        name_lbl = ctk.CTkLabel(row_frame, text=name[:30], width=220, anchor="w")
+        display_name = name if len(name) <= 30 else name[:27] + "..."
+        name_lbl = ctk.CTkLabel(row_frame, text=display_name, width=220, anchor="w")
         orig_lbl = ctk.CTkLabel(row_frame, text=size_str, width=90, anchor="w")
         result_lbl = ctk.CTkLabel(row_frame, text="—", width=90, anchor="w")
         status_lbl = ctk.CTkLabel(row_frame, text="Ready", width=120, anchor="w", text_color="gray60")
@@ -210,10 +213,10 @@ class FileCompressorApp:
             self._add_file(p)
 
     def _on_change_output(self):
-        pass  # implemented in Task 5
+        pass  # implemented in Task 6
 
     def _on_compress(self):
-        pass  # implemented in Task 5
+        pass  # implemented in Task 6
 
     def run(self):
         self.root.mainloop()
