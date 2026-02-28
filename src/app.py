@@ -201,6 +201,7 @@ class FileCompressorApp:
             "result_lbl": result_lbl,
             "status_lbl": status_lbl,
         })
+        self.drop_label.configure(text="Drop more files  or  Click to Browse")
 
     def _remove_file(self, path: str, frame):
         self.files.remove(path)
@@ -234,11 +235,13 @@ class FileCompressorApp:
             return {"quality": self.quality_var.get()}
         raw = self.target_entry.get().strip()
         if not raw:
-            return {"quality": 75}
+            self._show_error("Please enter a target size.")
+            return None
         try:
             val = float(raw)
         except ValueError:
-            return {"quality": 75}
+            self._show_error("Please enter a target size.")
+            return None
         unit = self.unit_var.get()
         target_kb = val * 1024 if unit == "MB" else val
         return {"target_kb": target_kb}
@@ -252,6 +255,8 @@ class FileCompressorApp:
             return
 
         params = self._get_compression_params()
+        if params is None:
+            return
         self.compress_btn.configure(state="disabled", text="Compressing...")
 
         def run():
@@ -284,6 +289,10 @@ class FileCompressorApp:
             self.root.after(0, lambda: self.compress_btn.configure(state="normal", text="Compress All"))
 
         threading.Thread(target=run, daemon=True).start()
+
+    def _show_error(self, msg: str):
+        import tkinter.messagebox as mb
+        mb.showerror("FilePress", msg)
 
     def run(self):
         self.root.mainloop()
