@@ -6,10 +6,18 @@ ctk.set_default_color_theme("blue")
 
 class FileCompressorApp:
     def __init__(self):
-        self.root = ctk.CTk()
+        try:
+            from tkinterdnd2 import TkinterDnD
+            self.root = TkinterDnD.Tk()
+            ctk.set_appearance_mode("System")
+            ctk.set_default_color_theme("blue")
+            self.root.configure(fg_color=ctk.ThemeManager.theme["CTk"]["fg_color"])
+        except ImportError:
+            self.root = ctk.CTk()
         self.root.title("FilePress")
         self.root.geometry("680x620")
         self.root.resizable(False, False)
+        self.files = []  # list of file paths
         self._build_ui()
 
     def _build_ui(self):
@@ -35,6 +43,13 @@ class FileCompressorApp:
                                         font=ctk.CTkFont(size=14), text_color="gray60")
         self.drop_label.place(relx=0.5, rely=0.5, anchor="center")
         self.drop_frame.bind("<Button-1>", self._on_browse)
+
+        try:
+            from tkinterdnd2 import DND_FILES
+            self.root.drop_target_register(DND_FILES)
+            self.root.dnd_bind("<<Drop>>", self._on_drop)
+        except Exception:
+            pass  # drag & drop unavailable, browse still works
 
     def _build_mode_selector(self):
         frame = ctk.CTkFrame(self.root, fg_color="transparent")
@@ -139,7 +154,60 @@ class FileCompressorApp:
             self.unit_var.set("KB")
 
     def _on_browse(self, event=None):
-        pass  # implemented in Task 5
+        from tkinter import filedialog
+        paths = filedialog.askopenfilenames(
+            filetypes=[
+                ("Supported files", "*.jpg *.jpeg *.png *.webp *.heic *.pdf"),
+                ("Images", "*.jpg *.jpeg *.png *.webp *.heic"),
+                ("PDF", "*.pdf"),
+            ]
+        )
+        for p in paths:
+            self._add_file(p)
+
+    def _add_file(self, path: str):
+        if path in self.files:
+            return
+        self.files.append(path)
+        self._add_file_row(path)
+
+    def _add_file_row(self, path: str):
+        from pathlib import Path
+        from src.compressor import get_file_size_kb
+        row_frame = ctk.CTkFrame(self.file_list_frame, fg_color="transparent")
+        row_frame.pack(fill="x", pady=2)
+
+        name = Path(path).name
+        size_kb = get_file_size_kb(path)
+        size_str = f"{size_kb/1024:.1f} MB" if size_kb >= 1024 else f"{size_kb:.0f} KB"
+
+        name_lbl = ctk.CTkLabel(row_frame, text=name[:30], width=220, anchor="w")
+        orig_lbl = ctk.CTkLabel(row_frame, text=size_str, width=90, anchor="w")
+        result_lbl = ctk.CTkLabel(row_frame, text="—", width=90, anchor="w")
+        status_lbl = ctk.CTkLabel(row_frame, text="Ready", width=120, anchor="w", text_color="gray60")
+        remove_btn = ctk.CTkButton(row_frame, text="✕", width=28, height=24,
+                                    fg_color="transparent", hover_color="red",
+                                    command=lambda p=path, f=row_frame: self._remove_file(p, f))
+
+        for w in [name_lbl, orig_lbl, result_lbl, status_lbl, remove_btn]:
+            w.pack(side="left")
+
+        self.file_rows.append({
+            "path": path,
+            "frame": row_frame,
+            "result_lbl": result_lbl,
+            "status_lbl": status_lbl,
+        })
+
+    def _remove_file(self, path: str, frame):
+        self.files.remove(path)
+        self.file_rows = [r for r in self.file_rows if r["path"] != path]
+        frame.destroy()
+
+    def _on_drop(self, event):
+        paths = self.root.tk.splitlist(event.data)
+        for p in paths:
+            self._add_file(p)
 
     def _on_change_output(self):
         pass  # implemented in Task 5
