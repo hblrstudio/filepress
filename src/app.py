@@ -255,10 +255,11 @@ class FileCompressorApp:
         self.compress_btn.configure(state="disabled", text="Compressing...")
 
         def run():
+            import traceback
             for row in self.file_rows:
                 path = row["path"]
                 ext = Path(path).suffix.lower()
-                row["status_lbl"].configure(text="Working...", text_color="gray60")
+                self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Working...", text_color="gray60"))
                 try:
                     out = self._get_output_path(path)
                     if ext == ".pdf":
@@ -268,18 +269,19 @@ class FileCompressorApp:
 
                     final_kb = result["final_kb"]
                     size_str = f"{final_kb/1024:.1f} MB" if final_kb >= 1024 else f"{final_kb:.0f} KB"
-                    row["result_lbl"].configure(text=size_str)
+                    self.root.after(0, lambda lbl=row["result_lbl"], s=size_str: lbl.configure(text=s))
 
                     if result.get("already_small"):
-                        row["status_lbl"].configure(text="Already small", text_color="gray")
+                        self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Already small", text_color="gray"))
                     elif result["success"]:
-                        row["status_lbl"].configure(text="Done ✓", text_color="green")
+                        self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Done ✓", text_color="green"))
                     else:
-                        row["status_lbl"].configure(text="Target missed", text_color="orange")
-                except Exception as e:
-                    row["status_lbl"].configure(text=f"Error", text_color="red")
+                        self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Target missed", text_color="orange"))
+                except Exception:
+                    traceback.print_exc()
+                    self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Error", text_color="red"))
 
-            self.compress_btn.configure(state="normal", text="Compress All")
+            self.root.after(0, lambda: self.compress_btn.configure(state="normal", text="Compress All"))
 
         threading.Thread(target=run, daemon=True).start()
 
