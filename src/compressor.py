@@ -9,6 +9,7 @@ import pikepdf
 # Image compression constants
 MAX_QUALITY = 95
 MIN_QUALITY = 0
+JPEG_MIN_QUALITY = 20        # Lowest quality used in binary search; prevents visually destroyed output
 BINARY_SEARCH_ITERATIONS = 12
 TARGET_KB_TOLERANCE = 1.05
 DEFAULT_QUALITY = 75
@@ -89,7 +90,7 @@ def compress_image(src: str, dst: str, quality: int = None, target_kb: float = N
 
         # Binary search for quality (JPEG only; PNG compression is lossless)
         if fmt == "JPEG":
-            lo, hi = 5, MAX_QUALITY
+            lo, hi = JPEG_MIN_QUALITY, MAX_QUALITY
             best_quality = lo
             for _ in range(BINARY_SEARCH_ITERATIONS):
                 mid = (lo + hi) // 2
@@ -101,6 +102,14 @@ def compress_image(src: str, dst: str, quality: int = None, target_kb: float = N
                     lo = mid + 1
                 else:
                     hi = mid - 1
+
+            # Try one quality step higher: if it fits within tolerance use it
+            # (binary search finds the floor; this gets us closer to the target)
+            if best_quality < MAX_QUALITY:
+                buf = io.BytesIO()
+                img.save(buf, fmt, quality=best_quality + 1, optimize=True)
+                if buf.tell() / 1024 <= target_kb * TARGET_KB_TOLERANCE:
+                    best_quality += 1
 
             img.save(str(dst_path), fmt, quality=best_quality, optimize=True)
             final_kb = get_file_size_kb(str(dst_path))

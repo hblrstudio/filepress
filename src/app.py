@@ -48,8 +48,14 @@ class FileCompressorApp:
 
         try:
             from tkinterdnd2 import DND_FILES
-            self.root.drop_target_register(DND_FILES)
-            self.root.dnd_bind("<<Drop>>", self._on_drop)
+            # Register root plus visible widgets — CTkFrame/CTkLabel sit on top of
+            # the root and intercept drops, so each layer needs its own registration.
+            for widget in (self.root, self.drop_frame, self.drop_label):
+                try:
+                    widget.drop_target_register(DND_FILES)
+                    widget.dnd_bind("<<Drop>>", self._on_drop)
+                except Exception:
+                    pass
         except Exception:
             pass  # drag & drop unavailable, browse still works
 

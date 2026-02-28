@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "FilePress App",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["main.py"],
+      "port": 0,
+      "_note": "Desktop GUI app (Tkinter) — no HTTP port. Run directly: python main.py"
+    },
+    {
+      "name": "Tests (pytest)",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "pytest", "tests/", "-v"],
+      "port": 0,
+      "_note": "Test runner — not a server. Run directly: python -m pytest tests/ -v"
+    }
+  ]
+}
