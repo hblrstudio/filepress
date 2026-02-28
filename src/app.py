@@ -213,10 +213,75 @@ class FileCompressorApp:
             self._add_file(p)
 
     def _on_change_output(self):
-        pass  # implemented in Task 6
+        from tkinter import filedialog
+        folder = filedialog.askdirectory()
+        if folder:
+            self.output_dir = folder
+            self.output_label.configure(text=folder)
+
+    def _get_output_path(self, src: str) -> str:
+        from pathlib import Path
+        p = Path(src)
+        if self.output_dir:
+            out_dir = Path(self.output_dir)
+        else:
+            out_dir = p.parent / "compressed"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        return str(out_dir / f"{p.stem}_compressed{p.suffix}")
+
+    def _get_compression_params(self) -> dict:
+        if self.mode_var.get() == "quality":
+            return {"quality": self.quality_var.get()}
+        raw = self.target_entry.get().strip()
+        if not raw:
+            return {"quality": 75}
+        try:
+            val = float(raw)
+        except ValueError:
+            return {"quality": 75}
+        unit = self.unit_var.get()
+        target_kb = val * 1024 if unit == "MB" else val
+        return {"target_kb": target_kb}
 
     def _on_compress(self):
-        pass  # implemented in Task 6
+        import threading
+        from pathlib import Path
+        from src.compressor import compress_image, compress_pdf
+
+        if not self.files:
+            return
+
+        params = self._get_compression_params()
+        self.compress_btn.configure(state="disabled", text="Compressing...")
+
+        def run():
+            for row in self.file_rows:
+                path = row["path"]
+                ext = Path(path).suffix.lower()
+                row["status_lbl"].configure(text="Working...", text_color="gray60")
+                try:
+                    out = self._get_output_path(path)
+                    if ext == ".pdf":
+                        result = compress_pdf(path, out, **params)
+                    else:
+                        result = compress_image(path, out, **params)
+
+                    final_kb = result["final_kb"]
+                    size_str = f"{final_kb/1024:.1f} MB" if final_kb >= 1024 else f"{final_kb:.0f} KB"
+                    row["result_lbl"].configure(text=size_str)
+
+                    if result.get("already_small"):
+                        row["status_lbl"].configure(text="Already small", text_color="gray")
+                    elif result["success"]:
+                        row["status_lbl"].configure(text="Done ✓", text_color="green")
+                    else:
+                        row["status_lbl"].configure(text="Target missed", text_color="orange")
+                except Exception as e:
+                    row["status_lbl"].configure(text=f"Error", text_color="red")
+
+            self.compress_btn.configure(state="normal", text="Compress All")
+
+        threading.Thread(target=run, daemon=True).start()
 
     def run(self):
         self.root.mainloop()
