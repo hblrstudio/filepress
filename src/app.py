@@ -30,9 +30,11 @@ class FileCompressorApp:
             ctk.set_appearance_mode("System")
             ctk.set_default_color_theme("blue")
             self.root.configure(fg_color=THEME["bg"])
+            self._dnd_available = True   # TkinterDnD loaded — DnD works
         except ImportError:
             self.root = ctk.CTk()
             self.root.configure(fg_color=THEME["bg"])
+            self._dnd_available = False
         self.root.title("FilePress")
         self.root.geometry("680x680")
         self.root.resizable(False, False)
@@ -53,14 +55,14 @@ class FileCompressorApp:
         frame = ctk.CTkFrame(self.root, fg_color="transparent")
         frame.pack(fill="x", padx=20, pady=(16, 0))
 
-        # Hamburger button — blue, opens the left drawer
+        # Hamburger button — transparent, blue lines, no box
         ctk.CTkButton(
-            frame, text="☰", width=32, height=32,
-            fg_color=THEME["accent"],
-            hover_color=THEME["accent_hover"],
-            text_color="#ffffff",
+            frame, text="☰", width=36, height=36,
+            fg_color="transparent",
+            hover_color=THEME["hover_neutral"],
+            text_color=THEME["accent"],
             corner_radius=8,
-            font=ctk.CTkFont(size=15),
+            font=ctk.CTkFont(size=22),
             command=self._toggle_drawer,
         ).pack(side="left")
 
@@ -107,58 +109,74 @@ class FileCompressorApp:
         self.drop_label.place(relx=0.5, rely=0.5, anchor="center")
         self.drop_label.lift()  # keep label above canvas
 
-        self._drop_hover = False
+        # Smooth hover animation state
+        self._hover_t = 0.0    # 0.0 = normal, 1.0 = fully hovered
+        self._hover_job = None
 
-        def _draw_drop_state(hover: bool):
+        def _lerp(c1: str, c2: str, t: float) -> str:
+            """Interpolate between two hex colours."""
+            t = max(0.0, min(1.0, t))
+            r = int(int(c1[1:3], 16) + (int(c2[1:3], 16) - int(c1[1:3], 16)) * t)
+            g = int(int(c1[3:5], 16) + (int(c2[3:5], 16) - int(c1[3:5], 16)) * t)
+            b = int(int(c1[5:7], 16) + (int(c2[5:7], 16) - int(c1[5:7], 16)) * t)
+            return f"#{r:02x}{g:02x}{b:02x}"
+
+        def _apply_t(t: float):
+            bg = _lerp(THEME["card"],          THEME["accent_light"], t)
+            bc = _lerp(THEME["border"],         THEME["accent"],       t)
+            tc = _lerp(THEME["text_secondary"], THEME["accent"],       t)
+            self._drop_canvas.configure(bg=bg)
+            self.drop_frame.configure(border_color=bc)
+            self.drop_label.configure(text_color=tc)
             c = self._drop_canvas
             c.delete("dash")
             w, h = c.winfo_width(), c.winfo_height()
-            if w <= 1:
-                return
-            if hover:
-                c.configure(bg=THEME["accent_light"])
-                self.drop_frame.configure(border_color=THEME["accent"])
-                c.create_rectangle(
-                    6, 6, w - 6, h - 6,
-                    outline=THEME["accent"],
-                    dash=(8, 5),
-                    width=2,
-                    tags="dash",
-                )
-                self.drop_label.configure(text_color=THEME["accent"])
-            else:
-                c.configure(bg=THEME["card"])
-                self.drop_frame.configure(border_color=THEME["border"])
-                self.drop_label.configure(text_color=THEME["text_secondary"])
+            if t > 0.1 and w > 1:
+                c.create_rectangle(6, 6, w - 6, h - 6,
+                                   outline=bc, dash=(8, 5), width=2, tags="dash")
 
-        self._drop_canvas.bind("<Configure>", lambda e: _draw_drop_state(self._drop_hover))
+        def _animate(going_in: bool):
+            if self._hover_job:
+                self.root.after_cancel(self._hover_job)
+                self._hover_job = None
+            target = 1.0 if going_in else 0.0
+            step = 0.18  # ~6 ticks to full transition
+
+            def tick():
+                t = self._hover_t + step if going_in else self._hover_t - step
+                t = max(0.0, min(1.0, t))
+                self._hover_t = t
+                _apply_t(t)
+                if abs(t - target) > 0.01:
+                    self._hover_job = self.root.after(14, tick)
+
+            tick()
+
+        self._drop_canvas.bind("<Configure>", lambda e: _apply_t(self._hover_t))
 
         def on_enter(e):
-            self._drop_hover = True
-            _draw_drop_state(True)
+            _animate(True)
 
         def on_leave(e):
-            self._drop_hover = False
-            _draw_drop_state(False)
+            _animate(False)
 
         for w in (self.drop_frame, self.drop_label, self._drop_canvas):
             w.bind("<Enter>", on_enter)
             w.bind("<Leave>", on_leave)
             w.bind("<Button-1>", self._on_browse)
 
-        # Detect DnD availability at runtime; update label accordingly
-        self._dnd_available = False
-        try:
-            from tkinterdnd2 import DND_FILES
-            for widget in (self.root, self.drop_frame, self.drop_label):
-                try:
-                    widget.drop_target_register(DND_FILES)
-                    widget.dnd_bind("<<Drop>>", self._on_drop)
-                    self._dnd_available = True
-                except Exception:
-                    pass
-        except Exception:
-            pass  # drag & drop unavailable, browse still works
+        # Register drop targets (availability already determined in __init__)
+        if self._dnd_available:
+            try:
+                from tkinterdnd2 import DND_FILES
+                for widget in (self.root, self.drop_frame, self.drop_label):
+                    try:
+                        widget.drop_target_register(DND_FILES)
+                        widget.dnd_bind("<<Drop>>", self._on_drop)
+                    except Exception:
+                        pass
+            except Exception:
+                self._dnd_available = False
 
         self.drop_label.configure(
             text="Drop files here  ·  Click to Browse" if self._dnd_available else "Click to Browse"
@@ -585,7 +603,7 @@ class FileCompressorApp:
         if self.output_dir:
             out_dir = Path(self.output_dir)
         else:
-            out_dir = p.parent / "compressed"
+            out_dir = p.parent  # same folder as source by default
         out_dir.mkdir(parents=True, exist_ok=True)
         return str(out_dir / f"{p.stem}_compressed{p.suffix}")
 
