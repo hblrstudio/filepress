@@ -1,34 +1,25 @@
-# FilePress.spec
+# FilePress.spec  —  PyInstaller 6.x
 import pathlib, importlib.util
 
-# Locate tkinterdnd2 dylib at spec-parse time.
-# We use importlib.util.find_spec instead of a direct import because
-# tkinterdnd2's __init__.py imports tkinter.tix, which was removed in
-# Python 3.13 and raises an ImportError at import time.
-_spec = importlib.util.find_spec("tkinterdnd2")
-_pkg = pathlib.Path(_spec.origin).parent
-_dylib = next(_pkg.rglob("libtkdnd*.dylib"))
-
-block_cipher = None
+# Bundle the entire tkinterdnd2/tkdnd directory (contains arm64 + x64 dylibs).
+# importlib.util.find_spec avoids executing tkinterdnd2.__init__ directly.
+_pkg = pathlib.Path(importlib.util.find_spec("tkinterdnd2").origin).parent
 
 a = Analysis(
     ["main.py"],
     pathex=["."],
     binaries=[],
     datas=[
-        (str(_dylib), "tkinterdnd2/tkdnd"),
+        (str(_pkg / "tkdnd"), "tkinterdnd2/tkdnd"),
     ],
     hiddenimports=["tkinterdnd2", "PIL._tkinter_finder", "pikepdf"],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
     noarchive=False,
 )
 
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,
@@ -63,5 +54,8 @@ app = BUNDLE(
     info_plist={
         "NSHighResolutionCapable": True,
         "LSMinimumSystemVersion": "11.0",
+        "CFBundleShortVersionString": "1.0.0",
+        "CFBundleVersion": "1",
+        "NSHumanReadableCopyright": "© 2026 FilePress",
     },
 )

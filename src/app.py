@@ -29,7 +29,8 @@ class FileCompressorApp:
             # Re-apply CTk settings because TkinterDnD.Tk() bypasses ctk.CTk() init
             ctk.set_appearance_mode("System")
             ctk.set_default_color_theme("blue")
-            self.root.configure(fg_color=THEME["bg"])
+            # TkinterDnD.Tk is a plain Tk window — use bg, not CTk's fg_color
+            self.root.configure(bg=THEME["bg"])
             self._dnd_available = True   # TkinterDnD loaded — DnD works
         except ImportError:
             self.root = ctk.CTk()
