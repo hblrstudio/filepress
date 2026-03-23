@@ -9,6 +9,7 @@ THEME = {
     "border":         "#d1d1d6",
     "accent":         "#007aff",
     "accent_hover":   "#0066d6",
+    "accent_light":   "#e5f0ff",
     "text":           "#1d1d1f",
     "text_secondary": "#8e8e93",
     "success":        "#34c759",
@@ -175,7 +176,7 @@ class FileCompressorApp:
             border_width=1,
             border_color=THEME["border"],
             text_color=THEME["accent"],
-            hover_color="#e5f0ff",
+            hover_color=THEME["accent_light"],
             command=self._on_change_output,
         ).pack(side="left")
         self.output_dir = None
