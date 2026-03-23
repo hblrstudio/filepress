@@ -136,55 +136,89 @@ class FileCompressorApp:
         self.target_frame = ctk.CTkFrame(self.controls_container, fg_color="transparent")
         self.target_frame.pack(fill="x", padx=20, pady=8)
 
-        # Target size input
         row1 = ctk.CTkFrame(self.target_frame, fg_color="transparent")
         row1.pack(fill="x")
-        ctk.CTkLabel(row1, text="Target size:").pack(side="left")
-        self.target_entry = ctk.CTkEntry(row1, width=80, placeholder_text="500")
+        ctk.CTkLabel(row1, text="Target size:", text_color=THEME["text"]).pack(side="left")
+        self.target_entry = ctk.CTkEntry(
+            row1, width=80, placeholder_text="500",
+            fg_color=THEME["card"],
+            border_color=THEME["border"],
+            text_color=THEME["text"],
+        )
         self.target_entry.pack(side="left", padx=6)
         self.unit_var = ctk.StringVar(value="KB")
-        ctk.CTkOptionMenu(row1, values=["KB", "MB"], variable=self.unit_var, width=60).pack(side="left")
+        ctk.CTkOptionMenu(
+            row1, values=["KB", "MB"], variable=self.unit_var, width=60,
+            fg_color=THEME["card"],
+            button_color=THEME["border"],
+            button_hover_color="#e5e5ea",
+            text_color=THEME["text"],
+            dropdown_fg_color=THEME["card"],
+            dropdown_text_color=THEME["text"],
+            dropdown_hover_color="#f0f0f5",
+        ).pack(side="left")
 
-        # Platform presets
         row2 = ctk.CTkFrame(self.target_frame, fg_color="transparent")
         row2.pack(fill="x", pady=(6, 0))
-        ctk.CTkLabel(row2, text="Presets:", text_color="gray60").pack(side="left")
+        ctk.CTkLabel(row2, text="Presets:", text_color=THEME["text_secondary"]).pack(side="left")
         presets = [
-            ("Instagram", 8192),
-            ("WhatsApp", 5120),
-            ("Email", 1024),
-            ("Twitter/X", 5120),
-            ("LinkedIn", 8192),
-            ("PDF Web", 2048),
+            ("Instagram", 8192), ("WhatsApp", 5120), ("Email", 1024),
+            ("Twitter/X", 5120), ("LinkedIn", 8192), ("PDF Web", 2048),
         ]
         for name, size_kb in presets:
-            ctk.CTkButton(row2, text=name, width=70, height=26,
-                          command=lambda s=size_kb: self._apply_preset(s)).pack(side="left", padx=3)
+            ctk.CTkButton(
+                row2, text=name, width=70, height=26,
+                fg_color=THEME["card"],
+                border_width=1,
+                border_color=THEME["border"],
+                text_color=THEME["accent"],
+                hover_color=THEME["accent_light"],
+                corner_radius=6,
+                command=lambda s=size_kb: self._apply_preset(s),
+            ).pack(side="left", padx=3)
 
         # Quality slider (hidden by default)
         self.quality_frame = ctk.CTkFrame(self.controls_container, fg_color="transparent")
         self.quality_var = ctk.IntVar(value=75)
-        ctk.CTkLabel(self.quality_frame, text="Quality:").pack(side="left")
-        self.quality_slider = ctk.CTkSlider(self.quality_frame, from_=1, to=95,
-                                             variable=self.quality_var, width=300)
+        ctk.CTkLabel(
+            self.quality_frame, text="Quality:", text_color=THEME["text"],
+        ).pack(side="left")
+        self.quality_slider = ctk.CTkSlider(
+            self.quality_frame, from_=1, to=95,
+            variable=self.quality_var, width=300,
+            button_color=THEME["accent"],
+            button_hover_color=THEME["accent_hover"],
+            progress_color=THEME["accent"],
+        )
         self.quality_slider.pack(side="left", padx=10)
-        self.quality_label = ctk.CTkLabel(self.quality_frame, text="75")
+        self.quality_label = ctk.CTkLabel(
+            self.quality_frame, text="75", text_color=THEME["text"],
+        )
         self.quality_label.pack(side="left")
-        self.quality_var.trace_add("write", lambda *_: self.quality_label.configure(text=str(self.quality_var.get())))
+        self.quality_var.trace_add("write", lambda *_: self.quality_label.configure(
+            text=str(self.quality_var.get())
+        ))
 
     def _build_file_list(self):
-        frame = ctk.CTkFrame(self.root)
+        frame = ctk.CTkFrame(
+            self.root,
+            fg_color=THEME["card"],
+            border_width=1,
+            border_color=THEME["border"],
+            corner_radius=THEME["radius"],
+        )
         frame.pack(fill="both", expand=True, padx=20, pady=10)
-        # Header
         header = ctk.CTkFrame(frame, fg_color="transparent")
         header.pack(fill="x", padx=8, pady=4)
         for text, width in [("File", 220), ("Original", 90), ("Result", 90), ("Status", 120)]:
-            ctk.CTkLabel(header, text=text, width=width, anchor="w",
-                         font=ctk.CTkFont(weight="bold")).pack(side="left")
-        # Scrollable list
-        self.file_list_frame = ctk.CTkScrollableFrame(frame, height=180)
+            ctk.CTkLabel(
+                header, text=text, width=width, anchor="w",
+                font=ctk.CTkFont(weight="bold"),
+                text_color=THEME["text_secondary"],
+            ).pack(side="left")
+        self.file_list_frame = ctk.CTkScrollableFrame(frame, height=180, fg_color="transparent")
         self.file_list_frame.pack(fill="both", expand=True, padx=4)
-        self.file_rows = []  # list of dicts with widgets per file
+        self.file_rows = []
 
     def _build_output_controls(self):
         frame = ctk.CTkFrame(self.root, fg_color="transparent")
@@ -293,24 +327,29 @@ class FileCompressorApp:
         name = Path(path).name
         size_kb = get_file_size_kb(path)
         size_str = f"{size_kb/1024:.1f} MB" if size_kb >= 1024 else f"{size_kb:.0f} KB"
-
         display_name = name if len(name) <= 30 else name[:27] + "..."
-        name_lbl = ctk.CTkLabel(row_frame, text=display_name, width=220, anchor="w")
-        orig_lbl = ctk.CTkLabel(row_frame, text=size_str, width=90, anchor="w")
-        result_lbl = ctk.CTkLabel(row_frame, text="—", width=90, anchor="w")
-        status_lbl = ctk.CTkLabel(row_frame, text="Ready", width=120, anchor="w", text_color="gray60")
-        remove_btn = ctk.CTkButton(row_frame, text="✕", width=28, height=24,
-                                    fg_color="transparent", hover_color="red",
-                                    command=lambda p=path, f=row_frame: self._remove_file(p, f))
 
+        name_lbl   = ctk.CTkLabel(row_frame, text=display_name, width=220, anchor="w",
+                                   text_color=THEME["text"])
+        orig_lbl   = ctk.CTkLabel(row_frame, text=size_str, width=90, anchor="w",
+                                   text_color=THEME["text_secondary"])
+        result_lbl = ctk.CTkLabel(row_frame, text="—", width=90, anchor="w",
+                                   text_color=THEME["text_secondary"])
+        status_lbl = ctk.CTkLabel(row_frame, text="Ready", width=120, anchor="w",
+                                   text_color=THEME["text_secondary"])
+        remove_btn = ctk.CTkButton(
+            row_frame, text="✕", width=28, height=24,
+            fg_color="transparent",
+            text_color=THEME["text_secondary"],
+            hover_color=THEME["error"],
+            command=lambda p=path, f=row_frame: self._remove_file(p, f),
+        )
         for w in [name_lbl, orig_lbl, result_lbl, status_lbl, remove_btn]:
             w.pack(side="left")
 
         self.file_rows.append({
-            "path": path,
-            "frame": row_frame,
-            "result_lbl": result_lbl,
-            "status_lbl": status_lbl,
+            "path": path, "frame": row_frame,
+            "result_lbl": result_lbl, "status_lbl": status_lbl,
         })
         self.drop_label.configure(text="Drop more files  or  Click to Browse")
 
