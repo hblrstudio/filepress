@@ -60,11 +60,22 @@ class FileCompressorApp:
         ).pack(side="left", padx=10)
 
     def _build_drop_zone(self):
-        self.drop_frame = ctk.CTkFrame(self.root, height=120, border_width=2, border_color="gray40", corner_radius=12)
+        self.drop_frame = ctk.CTkFrame(
+            self.root,
+            height=110,
+            border_width=1,
+            border_color=THEME["border"],
+            corner_radius=THEME["radius"],
+            fg_color=THEME["card"],
+        )
         self.drop_frame.pack(fill="x", padx=20, pady=16)
         self.drop_frame.pack_propagate(False)
-        self.drop_label = ctk.CTkLabel(self.drop_frame, text="Drop files here  or  Click to Browse",
-                                        font=ctk.CTkFont(size=14), text_color="gray60")
+        self.drop_label = ctk.CTkLabel(
+            self.drop_frame,
+            text="Drop files here  or  Click to Browse",
+            font=ctk.CTkFont(size=14),
+            text_color=THEME["text_secondary"],
+        )
         self.drop_label.place(relx=0.5, rely=0.5, anchor="center")
         self.drop_frame.bind("<Button-1>", self._on_browse)
         self.drop_label.bind("<Button-1>", self._on_browse)
@@ -150,11 +161,24 @@ class FileCompressorApp:
     def _build_output_controls(self):
         frame = ctk.CTkFrame(self.root, fg_color="transparent")
         frame.pack(fill="x", padx=20, pady=(0, 8))
-        ctk.CTkLabel(frame, text="Output:").pack(side="left")
-        self.output_label = ctk.CTkLabel(frame, text="Same folder / compressed", text_color="gray60")
+        ctk.CTkLabel(
+            frame, text="Output:", text_color=THEME["text"],
+        ).pack(side="left")
+        self.output_label = ctk.CTkLabel(
+            frame, text="Same folder / compressed",
+            text_color=THEME["text_secondary"],
+        )
         self.output_label.pack(side="left", padx=8)
-        ctk.CTkButton(frame, text="Change", width=70, command=self._on_change_output).pack(side="left")
-        self.output_dir = None  # None = use default (next to original)
+        ctk.CTkButton(
+            frame, text="Change", width=70,
+            fg_color=THEME["card"],
+            border_width=1,
+            border_color=THEME["border"],
+            text_color=THEME["accent"],
+            hover_color="#e5f0ff",
+            command=self._on_change_output,
+        ).pack(side="left")
+        self.output_dir = None
 
     def _build_compress_button(self):
         self.compress_btn = ctk.CTkButton(self.root, text="Compress All", height=42,
