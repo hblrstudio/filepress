@@ -360,7 +360,7 @@ class FileCompressorApp:
             border_color=THEME["border"],
         )
         # Start off-screen to the left
-        self._drawer_panel.place(x=-DRAWER_W, y=0, width=DRAWER_W, relheight=1.0)
+        self._drawer_panel.place(x=-DRAWER_W, y=0, relheight=1.0)
         self._drawer_panel.pack_propagate(False)
 
         # Header row: title + close button
@@ -444,7 +444,7 @@ class FileCompressorApp:
         if (step > 0 and new_x >= target_x) or (step < 0 and new_x <= target_x):
             new_x = target_x
         self._drawer_current_x = new_x
-        self._drawer_panel.place(x=new_x, y=0, width=self._DRAWER_W, relheight=1.0)
+        self._drawer_panel.place(x=new_x, y=0, relheight=1.0)
         if new_x == target_x:
             if new_x < 0:
                 self._drawer_open = False
