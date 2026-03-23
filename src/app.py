@@ -217,6 +217,8 @@ class FileCompressorApp:
     # ── Event handlers ──────────────────────────────────────────────────────
 
     def _set_mode(self, value: str):
+        if self.mode_var.get() == value:
+            return
         self.mode_var.set(value)
         # Update tab visual states
         if value == "target":
@@ -230,7 +232,7 @@ class FileCompressorApp:
                 hover_color="#f0f0f5",
                 text_color=THEME["text_secondary"],
             )
-        else:
+        elif value == "quality":
             self._tab_quality.configure(
                 fg_color=THEME["accent"],
                 hover_color=THEME["accent_hover"],
@@ -241,6 +243,8 @@ class FileCompressorApp:
                 hover_color="#f0f0f5",
                 text_color=THEME["text_secondary"],
             )
+        else:
+            raise ValueError(f"Unknown mode: {value!r}")
         self._on_mode_change()
 
     def _on_mode_change(self):
