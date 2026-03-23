@@ -96,12 +96,39 @@ class FileCompressorApp:
 
     def _build_mode_selector(self):
         frame = ctk.CTkFrame(self.root, fg_color="transparent")
-        frame.pack(fill="x", padx=20)
-        self.mode_var = ctk.StringVar(value="target")
-        ctk.CTkRadioButton(frame, text="Target Size", variable=self.mode_var, value="target", command=self._on_mode_change).pack(side="left")
-        ctk.CTkRadioButton(frame, text="Quality Slider", variable=self.mode_var, value="quality", command=self._on_mode_change).pack(side="left", padx=20)
+        frame.pack(fill="x", padx=20, pady=(4, 0))
 
-        # Create stable container for target/quality controls
+        self.mode_var = ctk.StringVar(value="target")
+
+        tab_container = ctk.CTkFrame(
+            frame,
+            fg_color=THEME["card"],
+            border_width=1,
+            border_color=THEME["border"],
+            corner_radius=8,
+        )
+        tab_container.pack(side="left")
+
+        def make_tab(text, value):
+            btn = ctk.CTkButton(
+                tab_container,
+                text=text,
+                width=110,
+                height=28,
+                corner_radius=6,
+                fg_color=THEME["accent"] if value == "target" else "transparent",
+                hover_color=THEME["accent_hover"] if value == "target" else "#f0f0f5",
+                text_color="#ffffff" if value == "target" else THEME["text_secondary"],
+                font=ctk.CTkFont(size=12),
+                command=lambda v=value: self._set_mode(v),
+            )
+            btn.pack(side="left", padx=3, pady=3)
+            return btn
+
+        self._tab_target = make_tab("Target Size", "target")
+        self._tab_quality = make_tab("Quality Slider", "quality")
+
+        # Stable container for target/quality controls (unchanged)
         self.controls_container = ctk.CTkFrame(self.root, fg_color="transparent")
         self.controls_container.pack(fill="x", padx=0, pady=0)
 
@@ -189,6 +216,33 @@ class FileCompressorApp:
 
     # ── Event handlers ──────────────────────────────────────────────────────
 
+    def _set_mode(self, value: str):
+        self.mode_var.set(value)
+        # Update tab visual states
+        if value == "target":
+            self._tab_target.configure(
+                fg_color=THEME["accent"],
+                hover_color=THEME["accent_hover"],
+                text_color="#ffffff",
+            )
+            self._tab_quality.configure(
+                fg_color="transparent",
+                hover_color="#f0f0f5",
+                text_color=THEME["text_secondary"],
+            )
+        else:
+            self._tab_quality.configure(
+                fg_color=THEME["accent"],
+                hover_color=THEME["accent_hover"],
+                text_color="#ffffff",
+            )
+            self._tab_target.configure(
+                fg_color="transparent",
+                hover_color="#f0f0f5",
+                text_color=THEME["text_secondary"],
+            )
+        self._on_mode_change()
+
     def _on_mode_change(self):
         if self.mode_var.get() == "target":
             self.quality_frame.pack_forget()
@@ -198,8 +252,7 @@ class FileCompressorApp:
             self.quality_frame.pack(fill="x", padx=20, pady=8)
 
     def _apply_preset(self, size_kb):
-        self.mode_var.set("target")
-        self._on_mode_change()
+        self._set_mode("target")
         if size_kb >= 1024:
             self.target_entry.delete(0, "end")
             self.target_entry.insert(0, str(size_kb // 1024))
