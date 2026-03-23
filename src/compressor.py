@@ -148,7 +148,7 @@ def compress_image(src: str, dst: str, quality: int = None, target_kb: float = N
         img.save(str(dst_path), fmt, optimize=True)
         q = quality
     else:
-        q = max(JPEG_MIN_QUALITY, min(MAX_QUALITY, quality))
+        q = max(MIN_QUALITY, min(MAX_QUALITY, quality))
         img.save(str(dst_path), fmt, quality=q, optimize=True)
 
     return {

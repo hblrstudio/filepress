@@ -10,8 +10,8 @@ THEME = {
     "accent":         "#007aff",
     "accent_hover":   "#0066d6",
     "accent_light":   "#e5f0ff",
-    "hover_neutral":  "#f0f0f5",   # inactive tab hover, dropdown hover
-    "border_hover":   "#e5e5ea",   # option menu button hover
+    "hover_neutral":  "#f0f0f5",
+    "border_hover":   "#e5e5ea",
     "text":           "#1d1d1f",
     "text_secondary": "#8e8e93",
     "success":        "#34c759",
@@ -36,7 +36,7 @@ class FileCompressorApp:
         self.root.title("FilePress")
         self.root.geometry("680x680")
         self.root.resizable(False, False)
-        self.files = []  # list of file paths
+        self.files = []
         self._build_ui()
 
     def _build_ui(self):
@@ -47,15 +47,28 @@ class FileCompressorApp:
         self._build_file_list()
         self._build_output_controls()
         self._build_compress_button()
+        self._build_drawer()  # must be last — lifts panel above all other widgets
 
     def _build_header(self):
         frame = ctk.CTkFrame(self.root, fg_color="transparent")
         frame.pack(fill="x", padx=20, pady=(16, 0))
+
+        # Hamburger button — blue, opens the left drawer
+        ctk.CTkButton(
+            frame, text="☰", width=32, height=32,
+            fg_color=THEME["accent"],
+            hover_color=THEME["accent_hover"],
+            text_color="#ffffff",
+            corner_radius=8,
+            font=ctk.CTkFont(size=15),
+            command=self._toggle_drawer,
+        ).pack(side="left")
+
         ctk.CTkLabel(
             frame, text="FilePress",
             font=ctk.CTkFont(size=22, weight="bold"),
             text_color=THEME["text"],
-        ).pack(side="left")
+        ).pack(side="left", padx=(10, 0))
         ctk.CTkLabel(
             frame, text="Compress to any size",
             font=ctk.CTkFont(size=13),
@@ -185,7 +198,7 @@ class FileCompressorApp:
         self._tab_target = make_tab("Target Size", "target")
         self._tab_quality = make_tab("Quality Slider", "quality")
 
-        # Stable container for target/quality controls (unchanged)
+        # Stable container for target/quality controls
         self.controls_container = ctk.CTkFrame(self.root, fg_color="transparent")
         self.controls_container.pack(fill="x", padx=0, pady=0)
 
@@ -234,27 +247,45 @@ class FileCompressorApp:
                 command=lambda s=size_kb: self._apply_preset(s),
             ).pack(side="left", padx=3)
 
-        # Quality slider (hidden by default)
+        # ── Quality slider (hidden by default, shown in quality mode) ─────────
         self.quality_frame = ctk.CTkFrame(self.controls_container, fg_color="transparent")
         self.quality_var = ctk.IntVar(value=75)
+
+        quality_row = ctk.CTkFrame(self.quality_frame, fg_color="transparent")
+        quality_row.pack(fill="x")
         ctk.CTkLabel(
-            self.quality_frame, text="Quality:", text_color=THEME["text"],
+            quality_row, text="Quality:", text_color=THEME["text"],
         ).pack(side="left")
         self.quality_slider = ctk.CTkSlider(
-            self.quality_frame, from_=10, to=95,
-            variable=self.quality_var, width=300,
+            quality_row, from_=1, to=95,
+            variable=self.quality_var, width=280,
             button_color=THEME["accent"],
             button_hover_color=THEME["accent_hover"],
             progress_color=THEME["accent"],
         )
         self.quality_slider.pack(side="left", padx=10)
         self.quality_label = ctk.CTkLabel(
-            self.quality_frame, text="75", text_color=THEME["text"],
+            quality_row, text="75", text_color=THEME["text"],
         )
         self.quality_label.pack(side="left")
-        self.quality_var.trace_add("write", lambda *_: self.quality_label.configure(
-            text=str(self.quality_var.get())
-        ))
+
+        # Warning label shown when quality is very low
+        self._quality_warn = ctk.CTkLabel(
+            self.quality_frame,
+            text="⚠  Quality below 20 may produce visible compression artifacts",
+            font=ctk.CTkFont(size=11),
+            text_color=THEME["warning"],
+        )
+
+        def _update_quality(*_):
+            val = self.quality_var.get()
+            self.quality_label.configure(text=str(val))
+            if val < 20:
+                self._quality_warn.pack(anchor="w", pady=(4, 0))
+            else:
+                self._quality_warn.pack_forget()
+
+        self.quality_var.trace_add("write", _update_quality)
 
     def _build_file_list(self):
         frame = ctk.CTkFrame(
@@ -313,7 +344,114 @@ class FileCompressorApp:
         )
         self.compress_btn.pack(padx=20, pady=(0, 16), fill="x")
 
-    # ── Event handlers ──────────────────────────────────────────────────────
+    def _build_drawer(self):
+        """Left slide-in navigation drawer. Built last so it renders above all widgets."""
+        DRAWER_W = 220
+        self._DRAWER_W = DRAWER_W
+        self._drawer_open = False
+        self._drawer_current_x = -DRAWER_W
+
+        self._drawer_panel = ctk.CTkFrame(
+            self.root,
+            width=DRAWER_W,
+            fg_color=THEME["card"],
+            corner_radius=0,
+            border_width=1,
+            border_color=THEME["border"],
+        )
+        # Start off-screen to the left
+        self._drawer_panel.place(x=-DRAWER_W, y=0, width=DRAWER_W, relheight=1.0)
+        self._drawer_panel.pack_propagate(False)
+
+        # Header row: title + close button
+        hdr = ctk.CTkFrame(self._drawer_panel, fg_color="transparent")
+        hdr.pack(fill="x", padx=16, pady=(20, 4))
+        ctk.CTkLabel(
+            hdr,
+            text="FilePress",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color=THEME["text"],
+        ).pack(side="left")
+        ctk.CTkButton(
+            hdr, text="×", width=28, height=28,
+            fg_color="transparent",
+            hover_color=THEME["hover_neutral"],
+            text_color=THEME["text_secondary"],
+            font=ctk.CTkFont(size=18),
+            command=self._close_drawer,
+        ).pack(side="right")
+
+        # Divider
+        ctk.CTkFrame(
+            self._drawer_panel, fg_color=THEME["border"], height=1,
+        ).pack(fill="x", padx=16, pady=(4, 8))
+
+        # Navigation items
+        nav_items = [
+            ("Compression", True),
+            ("History", False),
+            ("Settings", False),
+            ("About", False),
+        ]
+        for label, active in nav_items:
+            ctk.CTkButton(
+                self._drawer_panel,
+                text=label,
+                anchor="w",
+                fg_color=THEME["accent_light"] if active else "transparent",
+                hover_color=THEME["hover_neutral"],
+                text_color=THEME["accent"] if active else THEME["text_secondary"],
+                height=38,
+                corner_radius=8,
+                font=ctk.CTkFont(size=13, weight="bold" if active else "normal"),
+            ).pack(fill="x", padx=12, pady=2)
+
+        # Version footer
+        ctk.CTkLabel(
+            self._drawer_panel,
+            text="v1.0",
+            font=ctk.CTkFont(size=10),
+            text_color=THEME["text_secondary"],
+        ).pack(side="bottom", pady=16)
+
+        # Escape closes the drawer
+        self.root.bind("<Escape>", lambda e: self._close_drawer())
+
+    # ── Drawer animation ──────────────────────────────────────────────────────
+
+    def _toggle_drawer(self):
+        if self._drawer_open:
+            self._close_drawer()
+        else:
+            self._open_drawer()
+
+    def _open_drawer(self):
+        if self._drawer_open:
+            return
+        self._drawer_open = True
+        self._drawer_panel.lift()
+        self._animate_drawer(0, step=35)
+
+    def _close_drawer(self):
+        if not self._drawer_open:
+            return
+        self._animate_drawer(-self._DRAWER_W, step=-35)
+
+    def _animate_drawer(self, target_x: int, step: int):
+        x = self._drawer_current_x
+        new_x = x + step
+        # Clamp to target
+        if (step > 0 and new_x >= target_x) or (step < 0 and new_x <= target_x):
+            new_x = target_x
+        self._drawer_current_x = new_x
+        self._drawer_panel.place(x=new_x, y=0, width=self._DRAWER_W, relheight=1.0)
+        if new_x == target_x:
+            if new_x < 0:
+                self._drawer_open = False
+            return
+        self.root.after(12, lambda: self._animate_drawer(target_x, step))
+
+    # ── Event handlers ────────────────────────────────────────────────────────
 
     def _set_mode(self, value: str):
         if self.mode_var.get() == value:
