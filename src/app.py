@@ -3,6 +3,20 @@ import customtkinter as ctk
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
+THEME = {
+    "bg":             "#f5f5f7",
+    "card":           "#ffffff",
+    "border":         "#d1d1d6",
+    "accent":         "#007aff",
+    "accent_hover":   "#0066d6",
+    "text":           "#1d1d1f",
+    "text_secondary": "#8e8e93",
+    "success":        "#34c759",
+    "warning":        "#ff9f0a",
+    "error":          "#ff3b30",
+    "radius":         10,
+}
+
 
 class FileCompressorApp:
     def __init__(self):
@@ -12,9 +26,10 @@ class FileCompressorApp:
             # Re-apply CTk settings because TkinterDnD.Tk() bypasses ctk.CTk() init
             ctk.set_appearance_mode("System")
             ctk.set_default_color_theme("blue")
-            self.root.configure(fg_color=ctk.ThemeManager.theme["CTk"]["fg_color"])
+            self.root.configure(fg_color=THEME["bg"])
         except ImportError:
             self.root = ctk.CTk()
+            self.root.configure(fg_color=THEME["bg"])
         self.root.title("FilePress")
         self.root.geometry("680x620")
         self.root.resizable(False, False)
@@ -33,8 +48,16 @@ class FileCompressorApp:
     def _build_header(self):
         frame = ctk.CTkFrame(self.root, fg_color="transparent")
         frame.pack(fill="x", padx=20, pady=(16, 0))
-        ctk.CTkLabel(frame, text="FilePress", font=ctk.CTkFont(size=22, weight="bold")).pack(side="left")
-        ctk.CTkLabel(frame, text="Compress to any size", font=ctk.CTkFont(size=13), text_color="gray").pack(side="left", padx=10)
+        ctk.CTkLabel(
+            frame, text="FilePress",
+            font=ctk.CTkFont(size=22, weight="bold"),
+            text_color=THEME["text"],
+        ).pack(side="left")
+        ctk.CTkLabel(
+            frame, text="Compress to any size",
+            font=ctk.CTkFont(size=13),
+            text_color=THEME["text_secondary"],
+        ).pack(side="left", padx=10)
 
     def _build_drop_zone(self):
         self.drop_frame = ctk.CTkFrame(self.root, height=120, border_width=2, border_color="gray40", corner_radius=12)
