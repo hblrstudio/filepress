@@ -56,11 +56,6 @@ def compress_image(src: str, dst: str, quality: int = None, target_kb: float = N
     except OSError as e:
         raise OSError(f"Failed to open image file: {src}") from e
 
-    # Convert RGBA/P to RGB for all output formats (JPEG cannot handle alpha,
-    # and keeping RGBA in PNG paths causes unnecessary complexity).
-    if img.mode in ("RGBA", "P"):
-        img = img.convert("RGB")
-
     # Determine output format based on source extension.
     # HEIC is treated as JPEG for v1 simplicity.
     if ext == ".png":
@@ -69,6 +64,20 @@ def compress_image(src: str, dst: str, quality: int = None, target_kb: float = N
     else:
         fmt = "JPEG"
         save_ext = ".jpg"
+
+    # Convert colour mode per output format.
+    # PNG preserves transparency (RGBA); JPEG has no alpha channel so composite over white.
+    if fmt == "JPEG":
+        if img.mode == "P":
+            img = img.convert("RGBA")
+        if img.mode == "RGBA":
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            bg.paste(img, mask=img.split()[3])  # use alpha channel as compositing mask
+            img = bg
+        elif img.mode != "RGB":
+            img = img.convert("RGB")
+    elif img.mode == "P":
+        img = img.convert("RGBA")  # preserve palette transparency in PNG output
 
     # Adjust dst extension to match format
     dst_path = Path(dst).with_suffix(save_ext)
@@ -139,7 +148,7 @@ def compress_image(src: str, dst: str, quality: int = None, target_kb: float = N
         img.save(str(dst_path), fmt, optimize=True)
         q = quality
     else:
-        q = max(MIN_QUALITY, min(MAX_QUALITY, quality))
+        q = max(JPEG_MIN_QUALITY, min(MAX_QUALITY, quality))
         img.save(str(dst_path), fmt, quality=q, optimize=True)
 
     return {

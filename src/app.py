@@ -34,7 +34,7 @@ class FileCompressorApp:
             self.root = ctk.CTk()
             self.root.configure(fg_color=THEME["bg"])
         self.root.title("FilePress")
-        self.root.geometry("680x620")
+        self.root.geometry("680x680")
         self.root.resizable(False, False)
         self.files = []  # list of file paths
         self._build_ui()
@@ -63,6 +63,8 @@ class FileCompressorApp:
         ).pack(side="left", padx=10)
 
     def _build_drop_zone(self):
+        import tkinter as tk
+
         self.drop_frame = ctk.CTkFrame(
             self.root,
             height=110,
@@ -73,28 +75,81 @@ class FileCompressorApp:
         )
         self.drop_frame.pack(fill="x", padx=20, pady=16)
         self.drop_frame.pack_propagate(False)
+
+        # Canvas used solely for the dashed-border hover effect
+        self._drop_canvas = tk.Canvas(
+            self.drop_frame,
+            highlightthickness=0,
+            bg=THEME["card"],
+        )
+        self._drop_canvas.place(x=0, y=0, relwidth=1, relheight=1)
+
         self.drop_label = ctk.CTkLabel(
             self.drop_frame,
-            text="Drop files here  or  Click to Browse",
+            text="Click to Browse",
             font=ctk.CTkFont(size=14),
             text_color=THEME["text_secondary"],
+            fg_color="transparent",
         )
         self.drop_label.place(relx=0.5, rely=0.5, anchor="center")
-        self.drop_frame.bind("<Button-1>", self._on_browse)
-        self.drop_label.bind("<Button-1>", self._on_browse)
+        self.drop_label.lift()  # keep label above canvas
 
+        self._drop_hover = False
+
+        def _draw_drop_state(hover: bool):
+            c = self._drop_canvas
+            c.delete("dash")
+            w, h = c.winfo_width(), c.winfo_height()
+            if w <= 1:
+                return
+            if hover:
+                c.configure(bg=THEME["accent_light"])
+                self.drop_frame.configure(border_color=THEME["accent"])
+                c.create_rectangle(
+                    6, 6, w - 6, h - 6,
+                    outline=THEME["accent"],
+                    dash=(8, 5),
+                    width=2,
+                    tags="dash",
+                )
+                self.drop_label.configure(text_color=THEME["accent"])
+            else:
+                c.configure(bg=THEME["card"])
+                self.drop_frame.configure(border_color=THEME["border"])
+                self.drop_label.configure(text_color=THEME["text_secondary"])
+
+        self._drop_canvas.bind("<Configure>", lambda e: _draw_drop_state(self._drop_hover))
+
+        def on_enter(e):
+            self._drop_hover = True
+            _draw_drop_state(True)
+
+        def on_leave(e):
+            self._drop_hover = False
+            _draw_drop_state(False)
+
+        for w in (self.drop_frame, self.drop_label, self._drop_canvas):
+            w.bind("<Enter>", on_enter)
+            w.bind("<Leave>", on_leave)
+            w.bind("<Button-1>", self._on_browse)
+
+        # Detect DnD availability at runtime; update label accordingly
+        self._dnd_available = False
         try:
             from tkinterdnd2 import DND_FILES
-            # Register root plus visible widgets — CTkFrame/CTkLabel sit on top of
-            # the root and intercept drops, so each layer needs its own registration.
             for widget in (self.root, self.drop_frame, self.drop_label):
                 try:
                     widget.drop_target_register(DND_FILES)
                     widget.dnd_bind("<<Drop>>", self._on_drop)
+                    self._dnd_available = True
                 except Exception:
                     pass
         except Exception:
             pass  # drag & drop unavailable, browse still works
+
+        self.drop_label.configure(
+            text="Drop files here  ·  Click to Browse" if self._dnd_available else "Click to Browse"
+        )
 
     def _build_mode_selector(self):
         frame = ctk.CTkFrame(self.root, fg_color="transparent")
@@ -186,7 +241,7 @@ class FileCompressorApp:
             self.quality_frame, text="Quality:", text_color=THEME["text"],
         ).pack(side="left")
         self.quality_slider = ctk.CTkSlider(
-            self.quality_frame, from_=1, to=95,
+            self.quality_frame, from_=10, to=95,
             variable=self.quality_var, width=300,
             button_color=THEME["accent"],
             button_hover_color=THEME["accent_hover"],
@@ -361,14 +416,18 @@ class FileCompressorApp:
             "path": path, "frame": row_frame,
             "result_lbl": result_lbl, "status_lbl": status_lbl,
         })
-        self.drop_label.configure(text="Drop more files  or  Click to Browse")
+        self.drop_label.configure(
+            text="Drop more  ·  Click to Browse" if self._dnd_available else "Add more — Click to Browse"
+        )
 
     def _remove_file(self, path: str, frame):
         self.files.remove(path)
         self.file_rows = [r for r in self.file_rows if r["path"] != path]
         frame.destroy()
         if not self.files:
-            self.drop_label.configure(text="Drop files here  or  Click to Browse")
+            self.drop_label.configure(
+                text="Drop files here  ·  Click to Browse" if self._dnd_available else "Click to Browse"
+            )
 
     def _on_drop(self, event):
         paths = self.root.tk.splitlist(event.data)
