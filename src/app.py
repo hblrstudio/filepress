@@ -243,9 +243,17 @@ class FileCompressorApp:
         self.output_dir = None
 
     def _build_compress_button(self):
-        self.compress_btn = ctk.CTkButton(self.root, text="Compress All", height=42,
-                                           font=ctk.CTkFont(size=15, weight="bold"),
-                                           command=self._on_compress)
+        self.compress_btn = ctk.CTkButton(
+            self.root,
+            text="Compress All",
+            height=44,
+            font=ctk.CTkFont(size=15, weight="bold"),
+            fg_color=THEME["accent"],
+            hover_color=THEME["accent_hover"],
+            text_color="#ffffff",
+            corner_radius=THEME["radius"],
+            command=self._on_compress,
+        )
         self.compress_btn.pack(padx=20, pady=(0, 16), fill="x")
 
     # ── Event handlers ──────────────────────────────────────────────────────
@@ -416,7 +424,7 @@ class FileCompressorApp:
             for row in self.file_rows:
                 path = row["path"]
                 ext = Path(path).suffix.lower()
-                self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Working...", text_color="gray60"))
+                self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Working...", text_color=THEME["text_secondary"]))
                 try:
                     out = self._get_output_path(path)
                     if ext == ".pdf":
@@ -429,14 +437,14 @@ class FileCompressorApp:
                     self.root.after(0, lambda lbl=row["result_lbl"], s=size_str: lbl.configure(text=s))
 
                     if result.get("already_small"):
-                        self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Already small", text_color="gray"))
+                        self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Already small", text_color=THEME["text_secondary"]))
                     elif result["success"]:
-                        self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Done ✓", text_color="green"))
+                        self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Done ✓", text_color=THEME["success"]))
                     else:
-                        self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Target missed", text_color="orange"))
+                        self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Target missed", text_color=THEME["warning"]))
                 except Exception:
                     traceback.print_exc()
-                    self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Error", text_color="red"))
+                    self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Error", text_color=THEME["error"]))
 
             self.root.after(0, lambda: self.compress_btn.configure(state="normal", text="Compress All"))
 
