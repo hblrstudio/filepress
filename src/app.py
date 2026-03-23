@@ -404,25 +404,54 @@ class FileCompressorApp:
             self._drawer_panel, fg_color=THEME["border"], height=1,
         ).pack(fill="x", padx=16, pady=(4, 8))
 
-        # Navigation items
+        # Navigation items — (label, active, soon_label)
+        # soon_label = None means it's live; a string shows a greyed badge
         nav_items = [
-            ("Compression", True),
-            ("History", False),
-            ("Settings", False),
-            ("About", False),
+            ("Compression",           True,  None),
+            ("Resize for Platforms",  False, "Soon"),   # resize to Instagram/Twitter/etc px
+            ("Format Convert",        False, "Soon"),   # PNG→JPEG, HEIC→JPG, WEBP
+            ("PDF Tools",             False, "Soon"),   # image downsampling, split/merge
+            ("Batch Rename",          False, "Soon"),   # custom output naming patterns
+            ("History",               False, "Soon"),   # log of past compressions
+            ("Settings",              False, "Soon"),   # default quality, output folder, etc
         ]
-        for label, active in nav_items:
-            ctk.CTkButton(
+
+        def _make_nav_row(label: str, active: bool, soon: str | None):
+            row = ctk.CTkFrame(
                 self._drawer_panel,
-                text=label,
-                anchor="w",
                 fg_color=THEME["accent_light"] if active else "transparent",
-                hover_color=THEME["hover_neutral"],
-                text_color=THEME["accent"] if active else THEME["text_secondary"],
                 height=38,
                 corner_radius=8,
+            )
+            row.pack(fill="x", padx=12, pady=2)
+            row.pack_propagate(False)
+
+            lbl = ctk.CTkLabel(
+                row, text=label, anchor="w",
+                text_color=THEME["accent"] if active else THEME["text_secondary"],
                 font=ctk.CTkFont(size=13, weight="bold" if active else "normal"),
-            ).pack(fill="x", padx=12, pady=2)
+            )
+            lbl.pack(side="left", padx=10, fill="y")
+
+            if soon:
+                ctk.CTkLabel(
+                    row, text=soon,
+                    font=ctk.CTkFont(size=10),
+                    text_color=THEME["text_secondary"],
+                    fg_color=THEME["hover_neutral"],
+                    corner_radius=4,
+                    width=34, height=16,
+                ).pack(side="right", padx=8)
+
+            if not active:
+                def _enter(e, r=row): r.configure(fg_color=THEME["hover_neutral"])
+                def _leave(e, r=row): r.configure(fg_color="transparent")
+                for w in (row, lbl):
+                    w.bind("<Enter>", _enter)
+                    w.bind("<Leave>", _leave)
+
+        for label, active, soon in nav_items:
+            _make_nav_row(label, active, soon)
 
         # Version footer
         ctk.CTkLabel(
