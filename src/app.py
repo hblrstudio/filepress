@@ -10,6 +10,8 @@ THEME = {
     "accent":         "#007aff",
     "accent_hover":   "#0066d6",
     "accent_light":   "#e5f0ff",
+    "hover_neutral":  "#f0f0f5",   # inactive tab hover, dropdown hover
+    "border_hover":   "#e5e5ea",   # option menu button hover
     "text":           "#1d1d1f",
     "text_secondary": "#8e8e93",
     "success":        "#34c759",
@@ -117,7 +119,7 @@ class FileCompressorApp:
                 height=28,
                 corner_radius=6,
                 fg_color=THEME["accent"] if value == "target" else "transparent",
-                hover_color=THEME["accent_hover"] if value == "target" else "#f0f0f5",
+                hover_color=THEME["accent_hover"] if value == "target" else THEME["hover_neutral"],
                 text_color="#ffffff" if value == "target" else THEME["text_secondary"],
                 font=ctk.CTkFont(size=12),
                 command=lambda v=value: self._set_mode(v),
@@ -151,11 +153,11 @@ class FileCompressorApp:
             row1, values=["KB", "MB"], variable=self.unit_var, width=60,
             fg_color=THEME["card"],
             button_color=THEME["border"],
-            button_hover_color="#e5e5ea",
+            button_hover_color=THEME["border_hover"],
             text_color=THEME["text"],
             dropdown_fg_color=THEME["card"],
             dropdown_text_color=THEME["text"],
-            dropdown_hover_color="#f0f0f5",
+            dropdown_hover_color=THEME["hover_neutral"],
         ).pack(side="left")
 
         row2 = ctk.CTkFrame(self.target_frame, fg_color="transparent")
@@ -271,7 +273,7 @@ class FileCompressorApp:
             )
             self._tab_quality.configure(
                 fg_color="transparent",
-                hover_color="#f0f0f5",
+                hover_color=THEME["hover_neutral"],
                 text_color=THEME["text_secondary"],
             )
         elif value == "quality":
@@ -282,7 +284,7 @@ class FileCompressorApp:
             )
             self._tab_target.configure(
                 fg_color="transparent",
-                hover_color="#f0f0f5",
+                hover_color=THEME["hover_neutral"],
                 text_color=THEME["text_secondary"],
             )
         else:
