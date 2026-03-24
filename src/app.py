@@ -1,4 +1,8 @@
 import customtkinter as ctk
+from src import license as lic
+
+APP_VERSION = "1.0.0"
+VERSION_URL = "https://filepress.vercel.app/version.json"
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -41,6 +45,11 @@ class FileCompressorApp:
         self.root.resizable(False, False)
         self.files = []
         self._build_ui()
+        # Re-validate license in background (refreshes 7-day cache if stale)
+        import threading
+        threading.Thread(target=lic.revalidate_if_needed, daemon=True).start()
+        # Check for a newer version in the background
+        threading.Thread(target=self._check_for_update, daemon=True).start()
 
     def _build_ui(self):
         self._build_header()
@@ -661,6 +670,10 @@ class FileCompressorApp:
         if not self.files:
             return
 
+        if lic.needs_paywall():
+            self._show_paywall_dialog()
+            return
+
         params = self._get_compression_params()
         if params is None:
             return
@@ -683,6 +696,7 @@ class FileCompressorApp:
                     size_str = f"{final_kb/1024:.1f} MB" if final_kb >= 1024 else f"{final_kb:.0f} KB"
                     self.root.after(0, lambda lbl=row["result_lbl"], s=size_str: lbl.configure(text=s))
 
+                    lic.record_compression()
                     if result.get("already_small"):
                         self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Already small", text_color=THEME["text_secondary"]))
                     elif result["success"]:
@@ -696,6 +710,129 @@ class FileCompressorApp:
             self.root.after(0, lambda: self.compress_btn.configure(state="normal", text="Compress All"))
 
         threading.Thread(target=run, daemon=True).start()
+
+    def _check_for_update(self):
+        """Background thread: pings version.json and shows a banner if newer."""
+        try:
+            import urllib.request, json
+            with urllib.request.urlopen(VERSION_URL, timeout=5) as r:
+                data = json.loads(r.read())
+            latest = data.get("version", "")
+            if latest and latest != APP_VERSION:
+                dl_url = data.get("mac_url", "https://filepress.vercel.app/#download")
+                self.root.after(0, lambda: self._show_update_banner(latest, dl_url))
+        except Exception:
+            pass  # silently fail — no internet, server down, etc.
+
+    def _show_update_banner(self, new_version: str, dl_url: str):
+        """Non-intrusive banner at the top of the window."""
+        import webbrowser
+        banner = ctk.CTkFrame(
+            self.root, fg_color=THEME["accent_light"],
+            border_width=1, border_color=THEME["accent"],
+            corner_radius=8, height=36,
+        )
+        banner.pack(fill="x", padx=20, pady=(8, 0))
+        banner.pack_propagate(False)
+        ctk.CTkLabel(
+            banner,
+            text=f"FilePress {new_version} is available.",
+            font=ctk.CTkFont(size=12),
+            text_color=THEME["accent"],
+        ).pack(side="left", padx=10)
+        ctk.CTkButton(
+            banner, text="Download", width=80, height=24,
+            font=ctk.CTkFont(size=12),
+            fg_color=THEME["accent"], hover_color=THEME["accent_hover"],
+            text_color="#ffffff", corner_radius=6,
+            command=lambda: webbrowser.open(dl_url),
+        ).pack(side="left", padx=4)
+        ctk.CTkButton(
+            banner, text="✕", width=24, height=24,
+            fg_color="transparent", hover_color=THEME["accent_light"],
+            text_color=THEME["accent"], font=ctk.CTkFont(size=13),
+            command=banner.destroy,
+        ).pack(side="right", padx=6)
+
+    def _show_paywall_dialog(self):
+        """Modal shown when the user has used all free compressions."""
+        import webbrowser
+
+        GUMROAD_URL = "https://filepress.lemonsqueezy.com/buy"  # update after LS product is created
+
+        dlg = ctk.CTkToplevel(self.root)
+        dlg.title("Unlock FilePress")
+        dlg.geometry("420x340")
+        dlg.resizable(False, False)
+        dlg.configure(fg_color=THEME["bg"])
+        dlg.grab_set()  # modal
+        # Centre over main window
+        self.root.update_idletasks()
+        rx, ry = self.root.winfo_x(), self.root.winfo_y()
+        rw, rh = self.root.winfo_width(), self.root.winfo_height()
+        dlg.geometry(f"+{rx + (rw - 420) // 2}+{ry + (rh - 340) // 2}")
+
+        # ── Content ──────────────────────────────────────────────────────────
+        card = ctk.CTkFrame(dlg, fg_color=THEME["card"], corner_radius=12,
+                            border_width=1, border_color=THEME["border"])
+        card.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(card, text="You've used your 13 free compressions",
+                     font=ctk.CTkFont(size=15, weight="bold"),
+                     text_color=THEME["text"]).pack(pady=(20, 4))
+        ctk.CTkLabel(card,
+                     text="Unlock FilePress for $7.20 — unlimited compressions,\none-time payment, no subscription.",
+                     font=ctk.CTkFont(size=13),
+                     text_color=THEME["text_secondary"],
+                     justify="center").pack(pady=(0, 16))
+
+        ctk.CTkButton(card, text="Buy FilePress — $7.20",
+                      height=40, font=ctk.CTkFont(size=14, weight="bold"),
+                      fg_color=THEME["accent"], hover_color=THEME["accent_hover"],
+                      text_color="#ffffff", corner_radius=10,
+                      command=lambda: webbrowser.open(GUMROAD_URL),
+                      ).pack(fill="x", padx=20)
+
+        ctk.CTkLabel(card, text="Already purchased? Enter your license key:",
+                     font=ctk.CTkFont(size=12),
+                     text_color=THEME["text_secondary"]).pack(pady=(16, 4))
+
+        key_entry = ctk.CTkEntry(card, placeholder_text="XXXX-XXXX-XXXX-XXXX",
+                                 width=260, fg_color=THEME["bg"],
+                                 border_color=THEME["border"],
+                                 text_color=THEME["text"])
+        key_entry.pack()
+
+        feedback_lbl = ctk.CTkLabel(card, text="", font=ctk.CTkFont(size=12),
+                                    text_color=THEME["error"])
+        feedback_lbl.pack(pady=(4, 0))
+
+        def _activate():
+            activate_btn.configure(state="disabled", text="Validating…")
+            feedback_lbl.configure(text="", text_color=THEME["error"])
+
+            def _do():
+                ok, msg = lic.activate_license(key_entry.get())
+                def _done():
+                    if ok:
+                        feedback_lbl.configure(text=msg, text_color=THEME["success"])
+                        activate_btn.configure(text="Activated ✓")
+                        self.root.after(1200, dlg.destroy)
+                    else:
+                        feedback_lbl.configure(text=msg, text_color=THEME["error"])
+                        activate_btn.configure(state="normal", text="Activate")
+                self.root.after(0, _done)
+
+            import threading
+            threading.Thread(target=_do, daemon=True).start()
+
+        activate_btn = ctk.CTkButton(card, text="Activate", width=120, height=34,
+                                     fg_color=THEME["card"],
+                                     border_width=1, border_color=THEME["border"],
+                                     text_color=THEME["accent"],
+                                     hover_color=THEME["accent_light"],
+                                     command=_activate)
+        activate_btn.pack(pady=(6, 16))
 
     def _show_error(self, msg: str):
         import tkinter.messagebox as mb

@@ -78,49 +78,50 @@ jobs:
           name: FilePress-Windows
           path: dist/FilePress.exe
 
-  # ── GitHub Release ─────────────────────────────────────────────────────────
-  release:
-    name: Create GitHub Release
+  # ── Publish: Vercel Blob + version.json ────────────────────────────────────
+  publish:
+    name: Upload to Vercel Blob & update version.json
     needs: [build-macos, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
-      contents: write
+      contents: write   # needed to commit version.json back
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Download macOS artifact
         uses: actions/download-artifact@v4
         with:
           name: FilePress-macOS
+          path: ./artifacts
 
       - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
           name: FilePress-Windows
+          path: ./artifacts
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          name: FilePress ${{ github.ref_name }}
-          body: |
-            ## FilePress ${{ github.ref_name }}
+          node-version: "20"
 
-            ### Download
-            | Platform | File |
-            |---|---|
-            | macOS (Apple Silicon + Intel) | `FilePress.dmg` |
-            | Windows | `FilePress.exe` |
+      - name: Install @vercel/blob
+        run: npm install @vercel/blob
 
-            ### macOS install
-            1. Open `FilePress.dmg`
-            2. Drag FilePress to Applications
-            3. First launch: right-click → Open (one-time Gatekeeper bypass)
+      - name: Upload files to Vercel Blob & write version.json
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          VERSION: ${{ github.ref_name }}
+        run: node scripts/upload-release.mjs
 
-            ### Windows install
-            1. Download `FilePress.exe`
-            2. If SmartScreen appears: click "More info" → "Run anyway"
-          files: |
-            FilePress.dmg
-            FilePress.exe
-          draft: false
-          prerelease: false
+      - name: Commit updated version.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add web/public/version.json
+          git commit -m "chore: update version.json for ${{ github.ref_name }}" || echo "No changes to commit"
+          git push origin HEAD:main
