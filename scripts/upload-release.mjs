@@ -25,7 +25,7 @@ if (!version) {
 async function upload(filename, localPath) {
   const data = readFileSync(localPath);
   const blob = await put(`releases/${version}/${filename}`, data, {
-    access: "public",
+    access: "private",
     token: process.env.BLOB_READ_WRITE_TOKEN,
   });
   console.log(`✓ ${filename} → ${blob.url}`);
