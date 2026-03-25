@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from src import license as lic
 
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.2.0"
 VERSION_URL = "https://filepress.vercel.app/version.json"
 
 ctk.set_appearance_mode("System")
@@ -758,7 +758,7 @@ class FileCompressorApp:
         """Modal shown when the user has used all free compressions."""
         import webbrowser
 
-        GUMROAD_URL = "https://filepress.lemonsqueezy.com/buy"  # update after LS product is created
+        GUMROAD_URL = "https://filepressapp.lemonsqueezy.com/buy/918962"
 
         dlg = ctk.CTkToplevel(self.root)
         dlg.title("Unlock FilePress")
