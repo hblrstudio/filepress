@@ -23,7 +23,7 @@ import urllib.error
 from pathlib import Path
 
 FREE_LIMIT = 13
-VALIDATE_URL = "https://filepress-web.vercel.app/api/validate"
+VALIDATE_URL = "https://filepressapp.vercel.app/api/validate"
 CACHE_TTL = 7 * 24 * 3600  # 7 days
 
 _STATE_DIR = Path.home() / ".filepress"

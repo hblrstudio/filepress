@@ -45,7 +45,7 @@ const jsonLd = {
     availability: "https://schema.org/InStock",
   },
   softwareVersion: versionData.version,
-  url: "https://filepress-web.vercel.app",
+  url: "https://filepressapp.vercel.app",
   keywords:
     "image compression, file compression, compress images, compress PDF, JPEG compressor, PNG compressor",
 };
@@ -69,15 +69,19 @@ export default function Home() {
             href="#download"
             className="text-sm font-medium text-apple-accent hover:text-apple-accent-hover transition-colors"
           >
-            Download
+            Download free
           </a>
         </div>
       </nav>
 
       {/* ── Hero ────────────────────────────────────────────────────── */}
       <section className="max-w-3xl mx-auto px-6 pt-24 pb-20 text-center">
-        <div className="inline-flex items-center gap-2 bg-apple-accent-light text-apple-accent text-xs font-semibold px-3 py-1 rounded-full mb-6">
-          Free to try
+        {/* Free badge — prominent */}
+        <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 text-sm font-semibold px-4 py-2 rounded-full mb-6">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 0a7 7 0 1 1 0 14A7 7 0 0 1 7 0zm3.03 4.47L5.75 8.75 3.97 6.97l-.94.94 2.72 2.72 5.22-5.22-.94-.94z" fill="currentColor"/>
+          </svg>
+          Free to try — no account, no credit card
         </div>
 
         <h1 className="text-[44px] sm:text-[56px] font-bold text-apple-text leading-[1.08] tracking-tight mb-5">
@@ -150,7 +154,7 @@ export default function Home() {
             },
             {
               them: "Most tools are web-only, or Mac-only, or subscription-only",
-              us: "Desktop app. Mac + Windows. $9 once. That's it.",
+              us: "Desktop app. Mac + Windows. $7.20 once. That's it.",
             },
             {
               them: "Switching between an image tool and a PDF tool",
@@ -194,43 +198,127 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Pricing callout ─────────────────────────────────────────── */}
-      <section className="max-w-3xl mx-auto px-6 py-20 text-center">
-        <h2 className="text-2xl font-bold text-apple-text mb-3">
-          Try it. If it clicks, pay once.
+      {/* ── Privacy / trust ─────────────────────────────────────────── */}
+      <section className="max-w-3xl mx-auto px-6 py-20">
+        <h2 className="text-2xl font-bold text-apple-text text-center mb-2">
+          Your files never leave your computer
         </h2>
-        <p className="text-apple-secondary mb-8 max-w-md mx-auto">
-          13 free compressions — enough to know if it&apos;s worth it.
-          If it is, unlock it forever for less than a coffee.
-          No subscription. No annual renewal.
-          No &ldquo;your plan expired&rdquo; emails. Just the app, working.
+        <p className="text-apple-secondary text-center mb-10 text-sm">
+          No account. No cloud. No analytics on your files. Ever.
         </p>
-        <div className="inline-flex items-baseline gap-2 bg-white border border-apple-border rounded-2xl px-8 py-5">
-          <span className="text-4xl font-bold text-apple-text">$7.20</span>
-          <span className="text-apple-secondary">one-time · yours forever</span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            {
+              icon: (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              ),
+              title: "100% offline",
+              body: "Compression runs entirely on your machine. FilePress works with no internet connection.",
+            },
+            {
+              icon: (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              ),
+              title: "No data collection",
+              body: "FilePress does not read, upload, or log your files. What you compress is your business.",
+            },
+            {
+              icon: (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+                </svg>
+              ),
+              title: "Open on GitHub",
+              body: (
+                <>
+                  Built in the open.{" "}
+                  <a
+                    href="https://github.com/hblrstudio/filepress"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-apple-accent underline underline-offset-2 hover:text-apple-accent-hover transition-colors"
+                  >
+                    View the source on GitHub
+                  </a>{" "}
+                  — see exactly what FilePress does with your files.
+                </>
+              ),
+            },
+          ].map((item, i) => (
+            <div key={i} className="bg-white border border-apple-border rounded-2xl p-5">
+              <div className="w-10 h-10 bg-apple-accent-light rounded-xl flex items-center justify-center mb-4">
+                {item.icon}
+              </div>
+              <h3 className="font-semibold text-apple-text text-sm mb-1.5">{item.title}</h3>
+              <p className="text-apple-secondary text-sm leading-relaxed">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Pricing callout ─────────────────────────────────────────── */}
+      <section className="bg-white border-y border-apple-border py-20">
+        <div className="max-w-md mx-auto px-6 text-center">
+          <h2 className="text-2xl font-bold text-apple-text mb-3">
+            Try it free. Pay once if you love it.
+          </h2>
+          <p className="text-apple-secondary mb-8">
+            13 free compressions — enough to know if it works for you.
+            If it does, unlock it forever.
+            No subscription. No renewal emails. Just the app, working.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-apple-secondary text-sm">Unlock forever</span>
+            <div className="flex items-baseline gap-1.5 bg-apple-accent-light border border-apple-accent/20 rounded-xl px-5 py-3">
+              <span className="text-2xl font-bold text-apple-text">$7.20</span>
+              <span className="text-apple-secondary text-sm">one-time</span>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* ── Download ────────────────────────────────────────────────── */}
       <section
         id="download"
-        className="bg-white border-t border-apple-border py-20"
+        className="py-20"
       >
         <div className="max-w-5xl mx-auto px-6 text-center">
+          <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 text-sm font-semibold px-4 py-2 rounded-full mb-6">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 0a7 7 0 1 1 0 14A7 7 0 0 1 7 0zm3.03 4.47L5.75 8.75 3.97 6.97l-.94.94 2.72 2.72 5.22-5.22-.94-.94z" fill="currentColor"/>
+            </svg>
+            Free to try — no account needed
+          </div>
           <h2 className="text-2xl font-bold text-apple-text mb-2">
             Download FilePress
           </h2>
           <p className="text-apple-secondary mb-10">
-            Available for macOS and Windows. Free to try.
+            Available for macOS and Windows. Start compressing in under a minute.
           </p>
           <DownloadCards macUrl={mac_url} winUrl={win_url} version={version} />
         </div>
       </section>
 
       {/* ── Footer ──────────────────────────────────────────────────── */}
-      <footer className="max-w-5xl mx-auto px-6 py-10 flex items-center justify-between text-xs text-apple-secondary">
-        <span>© {new Date().getFullYear()} FilePress</span>
-        <span>v{version}</span>
+      <footer className="border-t border-apple-border">
+        <div className="max-w-5xl mx-auto px-6 py-8 flex items-center justify-between text-xs text-apple-secondary">
+          <span>© {new Date().getFullYear()} FilePress</span>
+          <div className="flex items-center gap-4">
+            <a
+              href="https://github.com/hblrstudio/filepress"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-apple-text transition-colors"
+            >
+              GitHub
+            </a>
+            <span>v{version}</span>
+          </div>
+        </div>
       </footer>
     </div>
   );
