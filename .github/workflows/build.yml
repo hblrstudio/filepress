@@ -30,15 +30,18 @@ jobs:
         run: pyinstaller FilePress.spec --noconfirm
 
       - name: Ad-hoc sign
-        run: codesign --force --deep --sign - dist/FilePress.app
+        run: |
+          codesign --force --deep --sign - dist/FilePress.app
+          sleep 3
 
       - name: Build DMG
         run: |
           APP="dist/FilePress.app"
           TMP="dist/dmg_tmp"
           mkdir -p "$TMP"
-          cp -r "$APP" "$TMP/"
+          ditto "$APP" "$TMP/FilePress.app"
           ln -s /Applications "$TMP/Applications"
+          sync
           hdiutil create \
             -volname "FilePress" \
             -srcfolder "$TMP" \
