@@ -305,9 +305,25 @@ export default function Home() {
 
       {/* ── Footer ──────────────────────────────────────────────────── */}
       <footer className="border-t border-apple-border">
-        <div className="max-w-5xl mx-auto px-6 py-8 flex items-center justify-between text-xs text-apple-secondary">
-          <span>© {new Date().getFullYear()} FilePress</span>
+        <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-apple-secondary">
+          <div className="flex items-center gap-1">
+            <span>© {new Date().getFullYear()} FilePress · Made by</span>
+            <a
+              href="https://github.com/hblrstudio"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-apple-text transition-colors"
+            >
+              hblrstudio
+            </a>
+          </div>
           <div className="flex items-center gap-4">
+            <a
+              href="mailto:han@hblrstudio.com"
+              className="hover:text-apple-text transition-colors"
+            >
+              han@hblrstudio.com
+            </a>
             <a
               href="https://github.com/hblrstudio/filepress"
               target="_blank"

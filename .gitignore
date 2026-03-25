@@ -3,3 +3,16 @@ __pycache__/
 dist/
 build/
 assets/FilePress.iconset/
+.DS_Store
+
+# env files — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Vercel
+web/.vercel
+
+# Node
+web/node_modules/
+web/.next/
