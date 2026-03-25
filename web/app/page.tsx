@@ -30,11 +30,35 @@ const FEATURES = [
 
 const FORMATS = ["JPEG", "PNG", "WEBP", "HEIC", "PDF"];
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "FilePress",
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "macOS, Windows",
+  description:
+    "Compress JPEG, PNG, WEBP, HEIC and PDF files to a target size. No upload, no cloud, works offline. Mac and Windows desktop app.",
+  offers: {
+    "@type": "Offer",
+    price: "7.20",
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+  },
+  softwareVersion: versionData.version,
+  url: "https://filepress-web.vercel.app",
+  keywords:
+    "image compression, file compression, compress images, compress PDF, JPEG compressor, PNG compressor",
+};
+
 export default function Home() {
   const { version, mac_url, win_url } = versionData;
 
   return (
     <div className="min-h-screen bg-apple-bg">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* ── Nav ─────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-apple-bg/80 backdrop-blur-xl border-b border-apple-border">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -53,7 +77,7 @@ export default function Home() {
       {/* ── Hero ────────────────────────────────────────────────────── */}
       <section className="max-w-3xl mx-auto px-6 pt-24 pb-20 text-center">
         <div className="inline-flex items-center gap-2 bg-apple-accent-light text-apple-accent text-xs font-semibold px-3 py-1 rounded-full mb-6">
-          Free to try · 13 compressions included
+          Free to try
         </div>
 
         <h1 className="text-[44px] sm:text-[56px] font-bold text-apple-text leading-[1.08] tracking-tight mb-5">
