@@ -28,9 +28,9 @@ export function DownloadButton({
   }, []);
 
   const isMac = os === "mac";
-  const primaryUrl = isMac ? macUrl : winUrl;
+  const primaryUrl = isMac ? "/api/download/mac" : "/api/download/win";
   const primaryLabel = isMac ? "Download for Mac" : "Download for Windows";
-  const secondaryUrl = isMac ? winUrl : macUrl;
+  const secondaryUrl = isMac ? "/api/download/win" : "/api/download/mac";
   const secondaryLabel = isMac ? "Windows" : "Mac";
 
   return (
@@ -95,8 +95,7 @@ export function DownloadCards({
           </div>
         </div>
         <a
-          href={macUrl}
-          download
+          href="/api/download/mac"
           className="w-full text-center bg-apple-accent hover:bg-apple-accent-hover text-white font-medium py-2.5 rounded-xl transition-colors text-sm"
         >
           Download .dmg
@@ -127,8 +126,7 @@ export function DownloadCards({
           </div>
         </div>
         <a
-          href={winUrl}
-          download
+          href="/api/download/win"
           className="w-full text-center bg-apple-accent hover:bg-apple-accent-hover text-white font-medium py-2.5 rounded-xl transition-colors text-sm"
         >
           Download .exe
