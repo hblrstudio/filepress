@@ -25,6 +25,10 @@ Compress images and PDFs to any target size. Desktop app for macOS and Windows.
 
 13 free compressions, then $7.20 one-time to unlock forever. No subscription.
 
+## Roadmap
+
+- [ ] **Video compression (MP4 / MOV)** — hit a target size on video, not just images & PDF. Lets people shrink large clips before uploading them anywhere (e.g. a CMS). _Surfaced while shipping Shakira Saunders' site guide, which points clients here to compress clips._
+
 ---
 
 Made by [hblrstudio](https://github.com/hblrstudio) · [han@hblrstudio.com](mailto:han@hblrstudio.com)

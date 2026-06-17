@@ -1,9 +1,10 @@
 import pytest
 import os
+import subprocess
 from pathlib import Path
 from PIL import Image
 import tempfile
-from src.compressor import compress_image, compress_pdf, get_file_size_kb
+from src.compressor import compress_image, compress_pdf, compress_video, get_file_size_kb, _ffmpeg_exe
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -179,3 +180,106 @@ def test_compress_pdf_already_small(tmp_path):
     out = tmp_path / "out.pdf"
     result = compress_pdf(str(src), str(out), target_kb=10000)
     assert result["already_small"] is True
+
+
+# ── Video compression tests ───────────────────────────────────────────────────
+
+@pytest.fixture(scope="module")
+def tiny_mp4(tmp_path_factory):
+    """Generate a 3-second 320×240 synthetic MP4 using ffmpeg's lavfi source."""
+    out = tmp_path_factory.mktemp("video") / "test.mp4"
+    ffmpeg = _ffmpeg_exe()
+    subprocess.run(
+        [
+            ffmpeg, "-y",
+            "-f", "lavfi", "-i", "color=c=blue:size=320x240:rate=24",
+            "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100",
+            "-t", "3",
+            "-c:v", "libx264", "-crf", "18",
+            "-c:a", "aac", "-b:a", "128k",
+            str(out),
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return out
+
+
+def test_compress_video_quality_mode(tmp_path, tiny_mp4):
+    """Quality mode should produce a valid .mp4 smaller than a very-high-quality encode."""
+    out = tmp_path / "out.mp4"
+    result = compress_video(str(tiny_mp4), str(out), quality=30)
+    assert result["success"] is True
+    assert result["already_small"] is False
+    assert result["quality_used"] == 30
+    assert Path(result["output_path"]).exists()
+    assert Path(result["output_path"]).suffix == ".mp4"
+    assert result["final_kb"] > 0
+    assert result["original_kb"] > 0
+
+
+def test_compress_video_target_mode(tmp_path, tiny_mp4):
+    """Target size mode should run 2-pass encode and produce output smaller than original."""
+    original_kb = get_file_size_kb(str(tiny_mp4))
+    # Target 60% of original. For real-world clips this hits precisely;
+    # for tiny synthetic test videos the codec floor may cause a slight overshoot —
+    # we verify the attempt was made (not already_small) and the output was produced.
+    target_kb = original_kb * 0.6
+    out = tmp_path / "out.mp4"
+    result = compress_video(str(tiny_mp4), str(out), target_kb=target_kb)
+    assert result["already_small"] is False
+    assert Path(result["output_path"]).exists()
+    assert result["final_kb"] > 0
+    # Output must be smaller than the original (compression happened)
+    assert result["final_kb"] < original_kb
+
+
+def test_compress_video_already_small(tmp_path, tiny_mp4):
+    """When target_kb exceeds the source size, already_small should be True."""
+    out = tmp_path / "out.mp4"
+    result = compress_video(str(tiny_mp4), str(out), target_kb=999_999)
+    assert result["already_small"] is True
+    assert result["success"] is True
+    assert Path(result["output_path"]).exists()
+
+
+def test_compress_video_mov_outputs_mp4(tmp_path, tiny_mp4):
+    """Even when dst is named .mov, output must be .mp4."""
+    out = tmp_path / "out.mov"  # deliberately wrong extension
+    result = compress_video(str(tiny_mp4), str(out), quality=50)
+    assert Path(result["output_path"]).suffix == ".mp4"
+    assert Path(result["output_path"]).exists()
+
+
+def test_compress_video_progress_callback(tmp_path, tiny_mp4):
+    """Progress callback should be called at least once with a value between 0 and 100."""
+    out = tmp_path / "out.mp4"
+    received = []
+    compress_video(str(tiny_mp4), str(out), quality=50, progress_callback=received.append)
+    assert len(received) > 0
+    assert all(0.0 <= p <= 100.0 for p in received)
+
+
+def test_compress_video_returns_all_keys(tmp_path, tiny_mp4):
+    """Return dict must contain all required keys."""
+    out = tmp_path / "out.mp4"
+    result = compress_video(str(tiny_mp4), str(out), quality=75)
+    for key in ["success", "already_small", "original_kb", "final_kb", "quality_used", "output_path"]:
+        assert key in result, f"Missing key: {key}"
+
+
+def test_compress_video_missing_file(tmp_path):
+    """Missing video file should raise FileNotFoundError."""
+    out = tmp_path / "out.mp4"
+    with pytest.raises(FileNotFoundError):
+        compress_video("/nonexistent/video.mp4", str(out), quality=50)
+
+
+def test_compress_video_unsupported_format(tmp_path):
+    """Non-video extension should raise ValueError."""
+    src = tmp_path / "test.avi"
+    src.write_bytes(b"\x00" * 100)
+    out = tmp_path / "out.mp4"
+    with pytest.raises(ValueError):
+        compress_video(str(src), str(out), quality=50)

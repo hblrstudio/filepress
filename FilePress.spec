@@ -5,14 +5,21 @@ import pathlib, importlib.util
 # importlib.util.find_spec avoids executing tkinterdnd2.__init__ directly.
 _pkg = pathlib.Path(importlib.util.find_spec("tkinterdnd2").origin).parent
 
+# Bundle the imageio-ffmpeg static ffmpeg binary for zero-dependency video compression.
+import imageio_ffmpeg as _iio_ffmpeg
+_ffmpeg_bin = _iio_ffmpeg.get_ffmpeg_exe()
+_ffmpeg_bin_name = pathlib.Path(_ffmpeg_bin).name
+
 a = Analysis(
     ["main.py"],
     pathex=["."],
-    binaries=[],
+    binaries=[
+        (_ffmpeg_bin, "imageio_ffmpeg/binaries"),
+    ],
     datas=[
         (str(_pkg / "tkdnd"), "tkinterdnd2/tkdnd"),
     ],
-    hiddenimports=["tkinterdnd2", "PIL._tkinter_finder", "pikepdf"],
+    hiddenimports=["tkinterdnd2", "PIL._tkinter_finder", "pikepdf", "imageio_ffmpeg"],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],

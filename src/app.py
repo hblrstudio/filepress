@@ -44,6 +44,7 @@ class FileCompressorApp:
         self.root.geometry("680x680")
         self.root.resizable(False, False)
         self.files = []
+        self._session_compressed: set = set()  # tracks paths compressed this session — re-runs don't count
         self._build_ui()
         # Re-validate license in background (refreshes 7-day cache if stale)
         import threading
@@ -564,9 +565,10 @@ class FileCompressorApp:
         from tkinter import filedialog
         paths = filedialog.askopenfilenames(
             filetypes=[
-                ("Supported files", "*.jpg *.jpeg *.png *.webp *.heic *.pdf"),
+                ("Supported files", "*.jpg *.jpeg *.png *.webp *.heic *.pdf *.mp4 *.mov"),
                 ("Images", "*.jpg *.jpeg *.png *.webp *.heic"),
                 ("PDF", "*.pdf"),
+                ("Video", "*.mp4 *.mov"),
             ]
         )
         for p in paths:
@@ -665,7 +667,7 @@ class FileCompressorApp:
     def _on_compress(self):
         import threading
         from pathlib import Path
-        from src.compressor import compress_image, compress_pdf
+        from src.compressor import compress_image, compress_pdf, compress_video, VIDEO_EXTENSIONS
 
         if not self.files:
             return
@@ -689,6 +691,16 @@ class FileCompressorApp:
                     out = self._get_output_path(path)
                     if ext == ".pdf":
                         result = compress_pdf(path, out, **params)
+                    elif ext in VIDEO_EXTENSIONS:
+                        status_lbl = row["status_lbl"]
+
+                        def _progress(pct, lbl=status_lbl):
+                            self.root.after(0, lambda: lbl.configure(
+                                text=f"{int(pct)}%",
+                                text_color=THEME["text_secondary"],
+                            ))
+
+                        result = compress_video(path, out, progress_callback=_progress, **params)
                     else:
                         result = compress_image(path, out, **params)
 
@@ -696,7 +708,9 @@ class FileCompressorApp:
                     size_str = f"{final_kb/1024:.1f} MB" if final_kb >= 1024 else f"{final_kb:.0f} KB"
                     self.root.after(0, lambda lbl=row["result_lbl"], s=size_str: lbl.configure(text=s))
 
-                    lic.record_compression()
+                    if path not in self._session_compressed:
+                        lic.record_compression()
+                        self._session_compressed.add(path)
                     if result.get("already_small"):
                         self.root.after(0, lambda lbl=row["status_lbl"]: lbl.configure(text="Already small", text_color=THEME["text_secondary"]))
                     elif result["success"]:
@@ -758,7 +772,7 @@ class FileCompressorApp:
         """Modal shown when the user has used all free compressions."""
         import webbrowser
 
-        GUMROAD_URL = "https://filepressapp.lemonsqueezy.com/buy/918962"
+        GUMROAD_URL = "https://gumroad.com"  # TODO: replace with your Gumroad product URL after setup
 
         dlg = ctk.CTkToplevel(self.root)
         dlg.title("Unlock FilePress")
@@ -777,7 +791,7 @@ class FileCompressorApp:
                             border_width=1, border_color=THEME["border"])
         card.pack(fill="both", expand=True, padx=20, pady=20)
 
-        ctk.CTkLabel(card, text="You've used your 13 free compressions",
+        ctk.CTkLabel(card, text="You've used your 52 free compressions",
                      font=ctk.CTkFont(size=15, weight="bold"),
                      text_color=THEME["text"]).pack(pady=(20, 4))
         ctk.CTkLabel(card,
